@@ -78,6 +78,8 @@
   :profiles
   {:test {:dependencies [[com.taoensso/carmine "2.19.1"]]
           :global-vars {*assert* true}}
+   :ci-medium {:plugins [[test2junit "1.3.3"]]
+               :jvm-opts ["-Xms3G" "-Xmx3G" "-DTEST_ONYX_ENV_LOG_LEVEL=:warn"]}
    ;; NOTE: dataflow does not like certain runtime dependencies (especially slf4j adaptors/bridges)
    ;;       so we expect our uberjar packaging to use this profile until we fully port onyx to
    ;;       dataflow. (Note: no Main-Class gen, no aot, and **only** java compilation enabled.)
