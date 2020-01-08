@@ -76,9 +76,8 @@
   :min-lein-version "2.8.0"
 
   :profiles
-  {
-   :test {:dependencies [[com.taoensso/carmine "2.19.1"]]
-          :global-vars{*assert* true}}
+  {:test {:dependencies [[com.taoensso/carmine "2.19.1"]]
+          :global-vars {*assert* true}}
    ;; NOTE: dataflow does not like certain runtime dependencies (especially slf4j adaptors/bridges)
    ;;       so we expect our uberjar packaging to use this profile until we fully port onyx to
    ;;       dataflow. (Note: no Main-Class gen, no aot, and **only** java compilation enabled.)
@@ -116,4 +115,8 @@
                        [clj-time "0.15.2"]
                        [clojure.java-time "0.3.2"]
                        [metosin/jsonista "0.2.5"]]}}
-  )
+  :deploy-repositories
+  [["releases"
+    {:url "https://curbside.jfrog.io/curbside/libs-release-local/"
+     :username :env/artifactory_user
+     :password :env/artifactory_pass}]])
