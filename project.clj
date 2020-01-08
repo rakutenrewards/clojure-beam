@@ -1,6 +1,6 @@
 (def ^:private apache-beam-version "2.16.0")
 
-(defproject com.curbside/clojure-beam "0.1.1-SNAPSHOT"
+(defproject com.curbside/clojure-beam "0.1.1"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
 
