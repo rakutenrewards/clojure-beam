@@ -29,7 +29,7 @@ pipeline.configuration {
 
     shell 'code-quality-check', {
       node         'staging_generic_t3_medium'
-      command_line 'lein with-profiles ci-medium,dev eastwood'
+      command_line 'lein eastwood'
       encrypted_env_vars 'JFROG_PASSWORD=artifactory_curbside_api_build_password'
       timeout 20
     }

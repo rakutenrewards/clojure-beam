@@ -1,8 +1,8 @@
 (def ^:private apache-beam-version "2.16.0")
 
-(defproject com.curbside/clojure-beam "0.1.3-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+(defproject curbside-clojure-beam "0.1.3-SNAPSHOT"
+  :description "Clojure wrapper for Apache Beam"
+  :url "https://github.com/RakutenReady/curbside-clojure-beam"
 
   :repositories
   [["redshift"
@@ -81,6 +81,19 @@
   :jvm-opts ["-Duser.timezone=UTC"
              "-XX:-OmitStackTraceInFastThrow"]
   :min-lein-version "2.8.0"
+
+  :plugins [[jonase/eastwood "0.3.6"]
+            [lein-ancient "0.6.15"]
+            [lein-bikeshed "0.5.1"
+             :exclusions [org.clojure/tools.cli
+                          org.clojure/tools.namespace]]
+            [com.gfredericks/lein-how-to-ns "0.2.3"
+             :exclusions [com.googlecode.java-diff-utils/diffutils]]
+            [lein-cljfmt "0.5.6"
+             :exclusions [org.clojure/clojure]]
+            [lein-cloverage "1.0.13"
+             :exclusions [org.clojure/clojure]]
+            [lein-kibit "0.1.6"]]
 
   :profiles
   {:test {:dependencies [[com.taoensso/carmine "2.19.1"]]

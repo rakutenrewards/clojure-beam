@@ -4,11 +4,11 @@
    [abracad.helpers.schema :as schema]
    [clojure.test :refer [deftest is testing]]
    [curbside.beam.api :as beam]
-   [curbside.beam.transform.kafka-io :as kafka-io]
    [curbside.beam.test.env :as env]
-   [curbside.beam.test.testing :as beam.testing]
    [curbside.beam.test.schema-registry-util :as schema-registry-util]
+   [curbside.beam.test.testing :as beam.testing]
    [curbside.beam.test.utils.kafka :as kafka]
+   [curbside.beam.transform.kafka-io :as kafka-io]
    [curbside.beam.utils.avro :as avro-utils])
   (:import
    (io.confluent.kafka.schemaregistry.client CachedSchemaRegistryClient)
@@ -46,7 +46,6 @@
                            :acks acks
                            :retries retries
                            :request-timeout-ms request-timeout-ms})))
-
 
 (defn produce-one-event [topic]
   (let [producer (create-producer)

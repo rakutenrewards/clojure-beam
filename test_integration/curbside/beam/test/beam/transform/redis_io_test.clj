@@ -1,9 +1,9 @@
 (ns curbside.beam.test.beam.transform.redis-io-test
   (:require
    [clojure.test :refer [deftest is testing]]
-   [curbside.beam.transform.redis-io :as redis-io]
    [curbside.beam.test.env :as env]
    [curbside.beam.test.testing :as beam.testing]
+   [curbside.beam.transform.redis-io :as redis-io]
    [taoensso.carmine :as car]))
 
 (def conn-opts {:pool {} :spec {:uri env/redis}})

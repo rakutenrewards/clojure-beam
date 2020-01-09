@@ -11,5 +11,4 @@
 
 (def kafka-bootstrap-servers (string/split -kafka-bootstrap-servers-env #","))
 
-
 (def redis (str "redis://" (or (System/getenv "CS_FLOW_REDIS") "127.0.0.1:6380")))
