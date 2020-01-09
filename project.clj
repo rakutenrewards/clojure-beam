@@ -28,6 +28,8 @@
   [[org.clojure/clojure "1.10.0"]
    [nrepl "0.6.0"] ; Network REPL server
    [medley "1.2.0"]
+   [clj-time "0.15.2"]
+   [org.clojure/core.match "0.3.0"]
 
    [com.taoensso/nippy "2.14.0"]
 
@@ -56,12 +58,18 @@
    [org.apache.avro/avro "1.9.0"]
    [curbside-avro-schemas "0.0.33"]
 
+   ;; redis
+   [com.taoensso/carmine "2.19.1"]
+
    ;; Serialization
    [metosin/jsonista "0.2.5"]
    [camel-snake-kebab "0.4.0"]
 
    ;; 3rd-Party Services
-   [com.indeed/java-dogstatsd-client "2.0.16"]]
+   [com.indeed/java-dogstatsd-client "2.0.16"]
+
+   ;; geography utilities
+   [factual/geo "2.1.1"]]
 
   :how-to-ns {:require-docstring? false
               :sort-clauses? true
@@ -96,8 +104,7 @@
             [lein-kibit "0.1.6"]]
 
   :profiles
-  {:test {:dependencies [[com.taoensso/carmine "2.19.1"]]
-          :global-vars {*assert* true}}
+  {:test {:global-vars {*assert* true}}
    :ci-medium {:plugins [[test2junit "1.3.3"]]
                :jvm-opts ["-Xms3G" "-Xmx3G" "-DTEST_ONYX_ENV_LOG_LEVEL=:warn"]}
    ;; NOTE: dataflow does not like certain runtime dependencies (especially slf4j adaptors/bridges)

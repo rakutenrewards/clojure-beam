@@ -1,9 +1,9 @@
 (ns curbside.beam.examples.stateful-count.pipeline
   (:require
+   [clj-time.format :as time]
    [clojure.spec.alpha :as spec]
    [clojure.tools.logging :as log]
-   [curbside.beam.api :as beam]
-   [curbside.utils.time :as time-utils])
+   [curbside.beam.api :as beam])
   (:import
    (curbside.beam.java ClojureSerializableFunction)
    (org.apache.beam.sdk.state ValueState)
@@ -13,17 +13,17 @@
    (org.joda.time Duration)))
 
 (def sample-data
-  [{:dest-id 1 :event-ts-inst (-> "2020-01-01T01:01:01Z" (time-utils/parse) (.toInstant))}
-   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:01:01Z" (time-utils/parse) (.toInstant))}
-   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:01:01Z" (time-utils/parse) (.toInstant))}
+  [{:dest-id 1 :event-ts-inst (-> "2020-01-01T01:01:01Z" (time/parse) (.toInstant))}
+   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:01:01Z" (time/parse) (.toInstant))}
+   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:01:01Z" (time/parse) (.toInstant))}
    ;; 20mn later
-   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:21:01Z" (time-utils/parse) (.toInstant))}
-   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:21:11Z" (time-utils/parse) (.toInstant))}
-   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:21:21Z" (time-utils/parse) (.toInstant))}
+   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:21:01Z" (time/parse) (.toInstant))}
+   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:21:11Z" (time/parse) (.toInstant))}
+   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:21:21Z" (time/parse) (.toInstant))}
    ;; more 20mn later
-   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:41:01Z" (time-utils/parse) (.toInstant))}
-   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:41:01Z" (time-utils/parse) (.toInstant))}
-   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:41:01Z" (time-utils/parse) (.toInstant))}])
+   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:41:01Z" (time/parse) (.toInstant))}
+   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:41:01Z" (time/parse) (.toInstant))}
+   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:41:01Z" (time/parse) (.toInstant))}])
 
 (defn- event-ts-inst* [{:keys [input]}]
   (:event-ts-inst input))
