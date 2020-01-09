@@ -41,5 +41,5 @@ pipeline.configuration {
       encrypted_env_vars 'JFROG_PASSWORD=artifactory_curbside_api_build_password'
       result_file  'test-reports/xml/*.xml'
     }
-
+  }
 }
