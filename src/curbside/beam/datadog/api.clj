@@ -8,13 +8,16 @@
   (:import
    (com.timgroup.statsd NonBlockingStatsDClient Event Event$AlertType)))
 
-(defn start-client [{:keys [host port prefix]}]
+(defn start-client* [{:keys [host port prefix]}]
   (try
     (log/infof "Starting the StatsD client on %s:%s with prefix=%s"
                host port prefix)
     (NonBlockingStatsDClient. prefix host port)
     (catch Exception e
       (log/error e "Failed to start the StatsD client!"))))
+
+(def start-client
+  (memoize start-client*))
 
 (defn stop-client [^NonBlockingStatsDClient client]
   (try
