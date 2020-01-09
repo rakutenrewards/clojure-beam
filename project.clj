@@ -1,6 +1,6 @@
 (def ^:private apache-beam-version "2.16.0")
 
-(defproject curbside-clojure-beam "0.1.3"
+(defproject curbside-clojure-beam "0.1.4-SNAPSHOT"
   :description "Clojure wrapper for Apache Beam"
   :url "https://github.com/RakutenReady/curbside-clojure-beam"
 
