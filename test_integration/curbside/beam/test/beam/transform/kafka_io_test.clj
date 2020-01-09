@@ -47,7 +47,6 @@
                            :retries retries
                            :request-timeout-ms request-timeout-ms})))
 
-
 (defn produce-one-event [topic]
   (let [producer (create-producer)
         schema-registry-client (CachedSchemaRegistryClient. ^String env/registry-url (int identity-map-capacity))]
