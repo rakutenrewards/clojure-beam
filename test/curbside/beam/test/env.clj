@@ -1,8 +1,6 @@
 (ns curbside.beam.test.env
   (:require
-   [clojure.string :as string])
-  (:import
-   (java.util UUID)))
+   [clojure.string :as string]))
 
 (def registry-url
   (or (System/getenv "CS_FLOW_KAFKA_SCHEMA_REGISTRY_URL")
