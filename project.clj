@@ -1,6 +1,6 @@
 (def ^:private apache-beam-version "2.16.0")
 
-(defproject curbside-clojure-beam "0.1.4-SNAPSHOT"
+(defproject com.curbside/curbside-clojure-beam "0.1.4-SNAPSHOT"
   :description "Clojure wrapper for Apache Beam"
   :url "https://github.com/RakutenReady/curbside-clojure-beam"
 
@@ -106,7 +106,7 @@
   :profiles
   {:test {:global-vars {*assert* true}}
    :ci-medium {:plugins [[test2junit "1.3.3"]]
-               :jvm-opts ["-Xms3G" "-Xmx3G" "-DTEST_ONYX_ENV_LOG_LEVEL=:warn"]}
+               :jvm-opts ["-Xms3G" "-Xmx3G"]}
    ;; NOTE: dataflow does not like certain runtime dependencies (especially slf4j adaptors/bridges)
    ;;       so we expect our uberjar packaging to use this profile until we fully port onyx to
    ;;       dataflow. (Note: no Main-Class gen, no aot, and **only** java compilation enabled.)
