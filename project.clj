@@ -106,41 +106,4 @@
   :profiles
   {:test {:global-vars {*assert* true}}
    :ci-medium {:plugins [[test2junit "1.3.3"]]
-               :jvm-opts ["-Xms3G" "-Xmx3G"]}
-   ;; NOTE: dataflow does not like certain runtime dependencies (especially slf4j adaptors/bridges)
-   ;;       so we expect our uberjar packaging to use this profile until we fully port onyx to
-   ;;       dataflow. (Note: no Main-Class gen, no aot, and **only** java compilation enabled.)
-   :dataflow-package {:main curbside.flow.beam.runtime
-                      :aot ^:replace [curbside.flow.beam.runtime]
-                      :dependencies ^:replace
-                                    [[org.clojure/clojure "1.10.1"]
-                                     [com.taoensso/nippy "2.14.0"]
-                                     [joda-time/joda-time "2.10"]
-                                     [camel-snake-kebab "0.4.0"]
-                                     [org.clojure/core.match "0.3.0-alpha5"]
-                                     [org.apache.beam/beam-sdks-java-io-kafka ~apache-beam-version]
-                                     [org.apache.beam/beam-sdks-java-core ~apache-beam-version]
-                                     [org.apache.beam/beam-runners-google-cloud-dataflow-java ~apache-beam-version
-                                      :exclusions [io.netty/netty-codec-http2 io.grpc/grpc-netty-shaded io.grpc/grpc-core]]
-                                     [org.apache.beam/beam-runners-direct-java ~apache-beam-version]
-
-                                     ;; Redis
-                                     [com.taoensso/carmine "2.19.1"]
-
-                                     ;; kafka
-                                     [org.apache.kafka/kafka-clients "2.0.0"]
-                                     [io.confluent/kafka-avro-serializer "5.0.0"
-                                      :exclusions [org.apache.kafka/kafka-clients org.slf4j/slf4j-log4j12]]
-                                     [curbside/abracad "0.4.21"] ; AVRO for Clojure
-                                     [org.apache.avro/avro "1.9.0"]
-                                     [curbside-avro-schemas "0.0.27"]
-                                     ;; logging
-                                     [org.clojure/tools.logging "0.5.0"]
-                                     [org.slf4j/slf4j-api "1.7.28"]
-                                     [org.apache.commons/commons-lang3 "3.9"]
-                                     ;; geography utilities
-                                     [factual/geo "2.1.1"]
-                                     ;; util
-                                     [clj-time "0.15.2"]
-                                     [clojure.java-time "0.3.2"]
-                                     [metosin/jsonista "0.2.5"]]}})
+               :jvm-opts ["-Xms3G" "-Xmx3G"]}})

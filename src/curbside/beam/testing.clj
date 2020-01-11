@@ -1,4 +1,4 @@
-(ns curbside.beam.test.testing
+(ns curbside.beam.testing
   (:require
    [curbside.beam.api :as beam]
    [curbside.beam.nippy-coder :as nippy-coder])

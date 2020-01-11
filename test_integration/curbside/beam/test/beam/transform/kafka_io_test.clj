@@ -6,8 +6,8 @@
    [curbside.beam.api :as beam]
    [curbside.beam.test.env :as env]
    [curbside.beam.test.schema-registry-util :as schema-registry-util]
-   [curbside.beam.test.testing :as beam.testing]
    [curbside.beam.test.utils.kafka :as kafka]
+   [curbside.beam.testing :as beam.testing]
    [curbside.beam.transform.kafka-io :as kafka-io]
    [curbside.beam.utils.avro :as avro-utils])
   (:import

@@ -2,7 +2,7 @@
   (:require
    [clojure.test :refer [deftest is testing]]
    [curbside.beam.test.env :as env]
-   [curbside.beam.test.testing :as beam.testing]
+   [curbside.beam.testing :as beam.testing]
    [curbside.beam.transform.redis-io :as redis-io]
    [taoensso.carmine :as car]))
 
