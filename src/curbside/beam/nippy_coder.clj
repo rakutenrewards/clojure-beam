@@ -6,7 +6,7 @@
 (defn make-custom-coder
   "Returns an instance of a CustomCoder using nippy for serialization"
   []
-  (NippyCustomCoder.))
+  (NippyCustomCoder/of))
 
 (defn make-kv-coder
   "Returns an instance of a KvCoder using by default nippy for serialization."

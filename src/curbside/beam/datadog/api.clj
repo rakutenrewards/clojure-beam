@@ -2,9 +2,8 @@
   "https://docs.datadoghq.com/developers/metrics/"
   (:refer-clojure :exclude [count dec inc set])
   (:require
-   [clojure.spec.alpha :as s]
    [clojure.string :as str]
-   [taoensso.timbre :as log])
+   [clojure.tools.logging :as log])
   (:import
    (com.timgroup.statsd NonBlockingStatsDClient Event Event$AlertType)))
 

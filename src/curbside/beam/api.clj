@@ -1,20 +1,21 @@
 (ns curbside.beam.api
   (:require
    [camel-snake-kebab.core :as snake-kebab]
+   [clj-time.coerce :as c]
    [clojure.string :as str]
    [clojure.tools.logging :as log]
    [curbside.beam.nippy-coder :as nippy-coder]
    [jsonista.core :as j])
   (:import
    (curbside.beam.java ClojureCombineFn ClojureSerializableFunction ClojureDoFn ClojureStatefulDoFn)
-   (java.util Map)
+   (java.util Map List)
    (org.apache.beam.sdk Pipeline PipelineResult)
    (org.apache.beam.sdk.coders Coder)
    (org.apache.beam.sdk.options PipelineOptionsFactory PipelineOptions)
-   (org.apache.beam.sdk.transforms MapElements Values Filter WithKeys Combine ParDo PTransform Create)
-   (org.apache.beam.sdk.transforms.windowing Window GlobalWindows Window$OnTimeBehavior)
-   (org.apache.beam.sdk.values PCollection PDone PCollectionView)
-   (org.joda.time Duration)))
+   (org.apache.beam.sdk.transforms MapElements Values Filter WithKeys Combine ParDo PTransform Create DoFn$ProcessContext ParDo$SingleOutput)
+   (org.apache.beam.sdk.transforms.windowing Window GlobalWindows Window$OnTimeBehavior IntervalWindow)
+   (org.apache.beam.sdk.values PCollection PDone PCollectionView TupleTag TupleTagList PCollectionTuple)
+   (org.joda.time Duration Instant)))
 
 ;; Pipelines
 
@@ -63,13 +64,16 @@
   "Runs the Pipeline according to the PipelineOptions used to create the Pipeline. Returns the PipelineResult.
 
   - p: a pipeline or a PCollection
+  - timeout-ms (optional): time to wait for the pipeline to finish
   "
-  [p]
-  (if (instance? Pipeline p)
-    (.run p)
-    (-> p
-        (.getPipeline)
-        (.run))))
+  ([p]
+   (if (instance? Pipeline p)
+     (.run p)
+     (-> p
+         (.getPipeline)
+         (.run))))
+  ([p ^Duration timeout-ms]
+   (.waitUntilFinish (run-pipeline p) timeout-ms)))
 
 (defn wait-pipeline-result
   "Waits until the pipeline finishes and returns the final status.
@@ -92,9 +96,18 @@
   (name (or step-name (str (symbol f)))))
 
 (defn apply-transform
-  [^PCollection pcoll step-name ptransform coder]
-  (-> ^PCollection (.apply pcoll step-name ptransform)
-      ^PCollection (.setCoder coder)))
+  [^PCollection pcoll step-name ptransform ^Coder coder]
+  (let [applied (.apply pcoll step-name ptransform)]
+    (cond
+      (instance? PCollection applied) (.setCoder ^PCollection applied coder)
+      (instance? PCollectionTuple applied) (do
+                                             ;; For now use same coder for all output
+                                             ;; PCollections.
+                                             (doseq [pcoll
+                                                     ^PCollection
+                                                     (.values ^Map (.getAll ^PCollectionTuple applied))]
+                                               (.setCoder pcoll coder))
+                                             applied))))
 
 (defn create-pcoll
   "Creates a PCollection from a Clojure collection.
@@ -109,6 +122,18 @@
     (-> pipeline (.apply (Create/of ^Map coll)) (.setCoder (nippy-coder/make-kv-coder)))
     (seqable? coll)
     (-> pipeline (.apply (Create/of ^Iterable (seq coll))) (.setCoder (nippy-coder/make-custom-coder)))))
+
+(defn ^PCollection create-timestamped-pcoll
+  "Like `create-pcoll` but accepts only a seqable `coll` of vectors where the first
+  value in each vector is the element and the second item is a coerce-able timestamp
+  value (eg, `java.util.Date`, `org.joda.time.DateTime`) representing the event
+  timestamp of the element."
+  [^Pipeline pipeline coll]
+  (-> pipeline
+      ^PCollection
+      (.apply
+       (Create/timestamped ^Iterable (map first coll) ^Iterable (map (comp c/to-long second) coll)))
+      (.setCoder (nippy-coder/make-custom-coder))))
 
 (def ^:private always-nil (constantly nil))
 
@@ -280,28 +305,37 @@
   "
   ([^PCollection pcoll process-element]
    (pardo pcoll process-element {}))
-  ([^PCollection pcoll process-element {:keys [step-name runtime-parameters side-inputs coder]
+  ([^PCollection pcoll process-element {:keys [step-name runtime-parameters side-inputs tuple-tags coder]
                                         :do-fn/keys [setup teardown start-bundle finish-bundle]}]
-   {:pre [(var? process-element) (var-or-nil? setup) (var-or-nil? teardown) (var-or-nil? start-bundle) (var-or-nil? finish-bundle)]}
-   ;; TODO: support side-input, tags, multiple output
+   {:pre [(var? process-element) (var-or-nil? setup) (var-or-nil? teardown) (var-or-nil? start-bundle) (var-or-nil? finish-bundle)]
+    :post [(or (instance? PCollection %) (instance? PCollectionTuple %))]}
    (let [setup (or setup #'always-nil)
          teardown (or teardown #'always-nil)
          start-bundle (or start-bundle #'always-nil)
          finish-bundle (or finish-bundle #'always-nil)]
-     (apply-transform pcoll
-                      (make-step-name step-name process-element)
-                      (cond-> (ParDo/of (ClojureDoFn. {"processElementFn" process-element
-                                                       "setupFn" setup
-                                                       "teardownFn" teardown
-                                                       "startBundleFn" start-bundle
-                                                       "finishBundleFn" finish-bundle}
-                                                      runtime-parameters
-                                                      side-inputs))
-                        (not-empty side-inputs) (.withSideInputs (into-array PCollectionView (vals side-inputs))))
-                      (cond
-                        (= coder ::inherit) (.getCoder pcoll)
-                        (some? coder) coder
-                        :else (nippy-coder/make-custom-coder))))))
+     (apply-transform
+      pcoll
+      (make-step-name step-name process-element)
+      (cond->
+       (ParDo/of (ClojureDoFn. {"processElementFn" process-element
+                                "setupFn" setup
+                                "teardownFn" teardown
+                                "startBundleFn" start-bundle
+                                "finishBundleFn" finish-bundle}
+                               runtime-parameters
+                               side-inputs
+                               tuple-tags))
+        (not-empty side-inputs) (as-> ^ParDo$SingleOutput the-pardo
+                                      (.withSideInputs the-pardo ^Iterable (vals side-inputs)))
+        (not-empty tuple-tags) (as-> ^ParDo$SingleOutput the-pardo
+                                     (let [coerced-tags (map #(if (instance? TupleTag %)
+                                                                % (TupleTag. ^String %)) tuple-tags)]
+                                       (.withOutputTags ^ParDo$SingleOutput the-pardo ^TupleTag (first coerced-tags)
+                                                        (TupleTagList/of ^List (into [] (rest coerced-tags)))))))
+      (cond
+        (= coder ::inherit) (.getCoder pcoll)
+        (some? coder) coder
+        :else (nippy-coder/make-custom-coder))))))
 
 (defn stateful-pardo
   "PTransform that will invoke the given DoFn function.
@@ -346,14 +380,17 @@
         ...)
       ```
 
+  - on-timer: Optional function to handle any Beam timer callbacks: `process-element` functions
+                 may access `dofn-timer` within the `runtime-parameters` map to set timers.
+
   See https://beam.apache.org/releases/javadoc/2.9.0/index.html?org/apache/beam/sdk/transforms/ParDo.html
   "
   ([^PCollection pcoll process-element]
    (stateful-pardo pcoll process-element {}))
   ([^PCollection pcoll process-element {:keys [step-name runtime-parameters side-inputs coder]
-                                        :do-fn/keys [setup teardown start-bundle finish-bundle]}]
+                                        :do-fn/keys [setup teardown start-bundle finish-bundle on-timer]}]
    {:pre [(var? process-element) (var-or-nil? setup) (var-or-nil? teardown) (var-or-nil? start-bundle) (var-or-nil? finish-bundle)]}
-   ;; TODO: support side-input, tags, multiple output
+   ;; TODO: support tags, multiple output
    (let [setup (or setup #'always-nil)
          teardown (or teardown #'always-nil)
          start-bundle (or start-bundle #'always-nil)
@@ -361,13 +398,15 @@
      (apply-transform pcoll
                       (make-step-name step-name process-element)
                       (cond-> (ParDo/of (ClojureStatefulDoFn. {"processElementFn" process-element
+                                                               "onTimerFn" on-timer ; nilable
                                                                "setupFn" setup
                                                                "teardownFn" teardown
                                                                "startBundleFn" start-bundle
                                                                "finishBundleFn" finish-bundle}
                                                               runtime-parameters
                                                               side-inputs))
-                        (not-empty side-inputs) (.withSideInputs (into-array PCollectionView (vals side-inputs))))
+                        (not-empty side-inputs) (as-> ^ParDo$SingleOutput the-pardo
+                                                      (.withSideInputs the-pardo ^Iterable (vals side-inputs))))
                       (cond
                         (= coder ::inherit) (.getCoder pcoll)
                         (some? coder) coder
@@ -451,10 +490,26 @@
     ```
 
   See https://beam.apache.org/releases/javadoc/2.9.0/index.html?org/apache/beam/sdk/transforms/windowing/GlobalWindows.html"
-  [^PCollection pcoll {:keys [trigger with-allowed-lateness accumulation-mode with-on-time-behavior]}]
-  (let [window-transform (cond-> (Window/into (GlobalWindows.))
-                           accumulation-mode ^Window (set-window-accumulation-mode accumulation-mode)
-                           with-allowed-lateness ^Window (.withAllowedLateness with-allowed-lateness)
-                           with-on-time-behavior ^Window (set-window-on-time-behavior with-on-time-behavior)
-                           trigger ^Window (.triggering trigger))]
-    (.apply pcoll window-transform)))
+  ([^PCollection pcoll] (global-windows pcoll {}))
+  ([^PCollection pcoll {:keys [step-name trigger with-allowed-lateness accumulation-mode with-on-time-behavior]}]
+   (let [window-transform (cond-> (Window/into (GlobalWindows.))
+                            accumulation-mode ^Window (set-window-accumulation-mode accumulation-mode)
+                            with-allowed-lateness ^Window (.withAllowedLateness with-allowed-lateness)
+                            with-on-time-behavior ^Window (set-window-on-time-behavior with-on-time-behavior)
+                            trigger ^Window (.triggering trigger))]
+     (.apply pcoll (or step-name "global-windows") window-transform))))
+
+(defn- log-detailed-element-impl
+  [{:keys [^DoFn$ProcessContext process-context ^IntervalWindow current-window runtime-parameters]}]
+  (log/infof "[%s] %s @ %s ~ [%s ∈ %s]" (:log-prefix runtime-parameters)
+             (.element process-context) (.timestamp process-context)
+             (.pane process-context) current-window)
+  (.output process-context (.element process-context)))
+
+(defn log-detailed-element*
+  "Simple pardo that logs details about the element and current context and
+  emits the element unmodified downstream."
+  [^PCollection pcoll step-name]
+  (pardo pcoll #'log-detailed-element-impl {:step-name step-name
+                                            :coder ::inherit
+                                            :runtime-parameters {:log-prefix step-name}}))

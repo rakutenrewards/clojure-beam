@@ -6,17 +6,22 @@
   (:import
    (org.apache.beam.sdk.values PCollection)))
 
-(defn- execute-redis-command [{input :input redis-cfg :runtime-parameters}]
-  (let [{:keys [op args]} input
-        op-fn (resolve (symbol "taoensso.carmine" (name op)))]
-    (.inc (m/counter "curbside.beam.redis_io" "execute_redis_command"))
-    (assert op-fn (str "The Redis operation taoensso.carmine/" (name op) " is not supported by carmine"))
-    (car/wcar redis-cfg (apply op-fn args))))
+(defn- execute-redis-command-or-commands [{input :input redis-cfg :runtime-parameters}]
+  (let [as-vec (if (vector? input) input [input])]
+    (.inc (m/counter "curbside.beam.redis_io" "execute_redis_bulk_call"))
+    (.inc (m/counter "curbside.beam.redis_io" "execute_redis_command") (count as-vec))
+    (car/wcar
+     redis-cfg
+     (doseq [{:keys [op args]} as-vec
+             :let [op-fn (resolve (symbol "taoensso.carmine" (name op)))]]
+       (when-not op-fn
+         (throw (RuntimeException.
+                 (format "The Redis operation taoensso.carmine/%s is not supported by carmine" (name op)))))
+       (apply op-fn args)))))
 
 (defn- write-transform [^PCollection pcoll redis-cfg]
   (-> pcoll
-      (beam/map-elements #'execute-redis-command {:runtime-parameters redis-cfg})
-      (beam/pdone)))
+      (beam/map-elements #'execute-redis-command-or-commands {:runtime-parameters redis-cfg})))
 
 (defn write
   "Execute the Redis operation against Redis servers.

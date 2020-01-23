@@ -10,23 +10,23 @@
    (org.apache.beam.sdk.transforms WithTimestamps DoFn$ProcessContext)
    (org.apache.beam.sdk.transforms.windowing Repeatedly AfterPane Window FixedWindows)
    (org.apache.beam.sdk.values KV)
-   (org.joda.time Duration)))
+   (org.joda.time Duration Instant)))
 
 (def sample-data
-  [{:dest-id 1 :event-ts-inst (-> "2020-01-01T01:01:01Z" (time/parse) (.toInstant))}
-   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:01:01Z" (time/parse) (.toInstant))}
-   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:01:01Z" (time/parse) (.toInstant))}
+  [{:dest-id 1 :event-ts-ms (-> "2020-01-01T01:01:01Z" (time/parse) (.getMillis))}
+   {:dest-id 1 :event-ts-ms (-> "2020-01-01T01:01:01Z" (time/parse) (.getMillis))}
+   {:dest-id 1 :event-ts-ms (-> "2020-01-01T01:01:01Z" (time/parse) (.getMillis))}
    ;; 20mn later
-   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:21:01Z" (time/parse) (.toInstant))}
-   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:21:11Z" (time/parse) (.toInstant))}
-   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:21:21Z" (time/parse) (.toInstant))}
+   {:dest-id 1 :event-ts-ms (-> "2020-01-01T01:21:01Z" (time/parse) (.getMillis))}
+   {:dest-id 1 :event-ts-ms (-> "2020-01-01T01:21:11Z" (time/parse) (.getMillis))}
+   {:dest-id 1 :event-ts-ms (-> "2020-01-01T01:21:21Z" (time/parse) (.getMillis))}
    ;; more 20mn later
-   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:41:01Z" (time/parse) (.toInstant))}
-   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:41:01Z" (time/parse) (.toInstant))}
-   {:dest-id 1 :event-ts-inst (-> "2020-01-01T01:41:01Z" (time/parse) (.toInstant))}])
+   {:dest-id 1 :event-ts-ms (-> "2020-01-01T01:41:01Z" (time/parse) (.getMillis))}
+   {:dest-id 1 :event-ts-ms (-> "2020-01-01T01:41:01Z" (time/parse) (.getMillis))}
+   {:dest-id 1 :event-ts-ms (-> "2020-01-01T01:41:01Z" (time/parse) (.getMillis))}])
 
-(defn- event-ts-inst* [{:keys [input]}]
-  (:event-ts-inst input))
+(defn- ^Instant event-ts-inst* [{:keys [input]}]
+  (Instant. ^long (:event-ts-ms input)))
 
 (defn- select-keys* [{:keys [input runtime-parameters]}]
   (let [{:keys [keyseq]} runtime-parameters]
