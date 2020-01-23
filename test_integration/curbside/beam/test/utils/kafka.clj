@@ -4,7 +4,7 @@
    [abracad.avro :as avro]
    [abracad.helpers.clojure]
    [abracad.helpers.joda-time]
-   [taoensso.timbre :as log])
+   [clojure.tools.logging :as log])
   (:import
    (io.confluent.kafka.schemaregistry.client CachedSchemaRegistryClient SchemaRegistryClient)
    (java.io ByteArrayOutputStream DataOutputStream)

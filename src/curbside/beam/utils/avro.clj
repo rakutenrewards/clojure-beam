@@ -8,8 +8,7 @@
    [curbside.ad.avro-schemas.ad-dests-stop :as ad-dests-stop]
    [curbside.ad.avro-schemas.ad-notify-estimate :as ad-notify-estimate]
    [curbside.ad.avro-schemas.ad-stories :as ad-stories]
-   [curbside.ad.avro.decode :refer [decode*]]
-   [taoensso.timbre :as log])
+   [curbside.ad.avro.decode :refer [decode*]])
   (:import
    (io.confluent.kafka.schemaregistry.client SchemaRegistryClient)
    (java.io ByteArrayOutputStream)

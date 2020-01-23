@@ -11,7 +11,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 
-public final class NippyCustomCoder extends CustomCoder {
+public final class NippyCustomCoder extends CustomCoder<Object> {
+
+  public static NippyCustomCoder of() { return INSTANCE; }
+
+  private static final NippyCustomCoder INSTANCE = new NippyCustomCoder();
 
   private static final long serialVersionUID = 0;
   private static final IFn FREEZE_TO_OUT = Clojure.var("taoensso.nippy", "freeze-to-out!");

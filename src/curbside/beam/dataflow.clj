@@ -20,6 +20,7 @@
 (s/def :dataflow-exec/files-to-stage (s/coll-of string?))
 (s/def :dataflow-exec/num-workers integer?)
 (s/def :dataflow-exec/max-num-workers integer?)
+(s/def :dataflow-exec/enable-streaming-engine (s/nilable boolean?))
 (s/def :dataflow-exec/update (s/nilable boolean?))
 
 ;; -- Dataflow profiling
@@ -34,4 +35,4 @@
                    :dataflow-exec/project :dataflow-exec/files-to-stage]
           :opt-un [:dataflow-exec/update :dataflow-exec/network :dataflow-exec/gcp-temp-location
                    :dataflow-exec/num-workers :dataflow-exec/max-num-workers
-                   :dataflow-exec/profiling-agent-configuration]))
+                   :dataflow-exec/profiling-agent-configuration :dataflow-exec/enable-streaming-engine]))

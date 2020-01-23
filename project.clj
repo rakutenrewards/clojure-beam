@@ -1,4 +1,5 @@
 (def ^:private apache-beam-version "2.16.0")
+(def ^:private slfj4-version "1.7.28")
 
 (defproject com.curbside/curbside-clojure-beam "0.1.5-SNAPSHOT"
   :description "Clojure wrapper for Apache Beam"
@@ -24,8 +25,10 @@
      :username :env/artifactory_user
      :password :env/artifactory_pass}]]
 
+  :exclusions [org.slf4j/slf4j-log4j12 log4j]
+
   :dependencies
-  [[org.clojure/clojure "1.10.0"]
+  [[org.clojure/clojure "1.10.1"]
    [nrepl "0.6.0"] ; Network REPL server
    [medley "1.2.0"]
    [clj-time "0.15.2"]
@@ -34,12 +37,9 @@
    [com.taoensso/nippy "2.14.0"]
 
    ;; Logging
-   [com.fzakaria/slf4j-timbre "0.3.14"] ; Forward SLF4J to Timbre
-   [com.taoensso/timbre "4.10.0"] ; Pure Clojure logging
-   [org.slf4j/log4j-over-slf4j "1.7.27"] ; https://www.slf4j.org/legacy.html
-   [org.slf4j/jul-to-slf4j "1.7.27"] ;
-   [org.slf4j/jcl-over-slf4j "1.7.27"] ;
-   [timbre-ns-pattern-level "0.1.2"] ; Middleware to filter logs by namespace
+   [org.slf4j/log4j-over-slf4j ~slfj4-version] ; https://www.slf4j.org/legacy.html
+   [org.slf4j/jul-to-slf4j ~slfj4-version]
+   [org.slf4j/jcl-over-slf4j ~slfj4-version]
    [org.apache.commons/commons-lang3 "3.9"]
    [org.clojure/tools.logging "0.5.0"]
 
@@ -55,8 +55,8 @@
    [io.confluent/kafka-avro-serializer "5.0.0"
     :exclusions [org.apache.kafka/kafka-clients]]
    [curbside/abracad "0.4.21"] ; AVRO for Clojure
-   [org.apache.avro/avro "1.9.0"]
-   [curbside-avro-schemas "0.0.33"]
+   [org.apache.avro/avro "1.9.1"]
+   [curbside-avro-schemas "0.0.34"]
 
    ;; redis
    [com.taoensso/carmine "2.19.1"]
@@ -104,6 +104,10 @@
             [lein-kibit "0.1.6"]]
 
   :profiles
-  {:test {:global-vars {*assert* true}}
+  {:test {:global-vars {*assert* true}
+          :dependencies [; -- test deps --
+                         [org.slf4j/slf4j-simple ~slfj4-version]
+                         [org.hamcrest/hamcrest-core "2.2"]
+                         [org.hamcrest/hamcrest-library "2.2"]]}
    :ci-medium {:plugins [[test2junit "1.3.3"]]
                :jvm-opts ["-Xms3G" "-Xmx3G"]}})

@@ -6,7 +6,10 @@
    (curbside.beam.java ClojureSerializableFunction)
    (java.util UUID)
    (org.apache.beam.sdk Pipeline)
-   (org.apache.beam.sdk.testing TestStream TestStream$Builder TestPipeline PAssert)
+   (org.apache.beam.sdk.coders IterableCoder)
+   (org.apache.beam.sdk.schemas.transforms Group)
+   (org.apache.beam.sdk.testing TestStream TestStream$Builder TestPipeline PAssert PAssert$IterableAssert)
+   (org.apache.beam.sdk.transforms Flatten)
    (org.apache.beam.sdk.values PCollection)))
 
 (defn test-pipeline []
@@ -21,8 +24,10 @@
                                    new-watermark-instant-fn (.advanceWatermarkTo (new-watermark-instant-fn elm))
                                    :always (.addElements elm (to-array []))))
                                (TestStream/create coder)
-                               coll)
-                       (.advanceWatermarkToInfinity))]
+                               ;; Excluding nils here allows easy (comment)ing out
+                               ;; of test data while creating and analyzing test runs:
+                               (filter some? coll))
+                       ^TestStream (.advanceWatermarkToInfinity))]
     (.apply pipeline ptransform)))
 
 (def ^:private pcollection-element-by-uid (atom {}))
@@ -40,10 +45,25 @@
   (-> (beam/run-pipeline pcoll)
       (beam/wait-pipeline-result timeout-ms)))
 
-(defn get-pcollection-element [^PCollection pcoll timeout-ms]
-  (let [uid (UUID/randomUUID)]
-    (-> (PAssert/that pcoll)
-        ;; TODO: provide more options that PAssert support
-        (.satisfies (ClojureSerializableFunction. #'set-pcollection-element {:uid uid})))
-    (run-and-wait-pipeline timeout-ms pcoll)
-    (get-and-clear-pcollection-element uid)))
+(defn get-pcollection-element
+  ([^PCollection pcoll] (get-pcollection-element pcoll 10000))
+  ([^PCollection pcoll timeout-ms]
+   (let [uid (UUID/randomUUID)]
+     (-> (PAssert/that pcoll)
+         ;; TODO: provide more options that PAssert support
+         (.satisfies (ClojureSerializableFunction. #'set-pcollection-element {:uid uid})))
+     (run-and-wait-pipeline timeout-ms pcoll)
+     (get-and-clear-pcollection-element uid))))
+
+(defn ^PCollection group-and-flatten*
+  "Helpful for testing; globally groups then flattens elements; going through a
+  grouping operation like this ensures that each element lands in a fired pane;
+  in turn, this allows for test assertions to be made using `.inOnTimePane` etc."
+  [^PCollection pcoll]
+  (-> pcoll
+      ^PCollection (.apply (Group/globally))
+      (.setCoder (IterableCoder/of (nippy-coder/make-custom-coder)))
+      (.apply (Flatten/iterables))))
+
+(defn ^PAssert$IterableAssert assert-that* [^PCollection pcoll ^String reason]
+  (PAssert/that reason pcoll))
