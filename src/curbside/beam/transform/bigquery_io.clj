@@ -11,20 +11,20 @@
   (:import
    (com.google.api.services.bigquery.model TableRow)
    (curbside.beam.java ClojureSerializableFunction)
-   (org.apache.beam.sdk.io.gcp.bigquery BigQueryIO TableRowJsonCoder)))
+   (org.apache.beam.sdk.io.gcp.bigquery BigQueryIO BigQueryIO$Write$WriteDisposition BigQueryIO$Write$CreateDisposition)))
 
 (defn- ->WriteDisposition
   [disp]
   (case disp
-    :append org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO$Write$WriteDisposition/WRITE_APPEND
-    :empty org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO$Write$WriteDisposition/WRITE_EMPTY
-    :truncate org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO$Write$WriteDisposition/WRITE_TRUNCATE))
+    :append BigQueryIO$Write$WriteDisposition/WRITE_APPEND
+    :empty BigQueryIO$Write$WriteDisposition/WRITE_EMPTY
+    :truncate BigQueryIO$Write$WriteDisposition/WRITE_TRUNCATE))
 
 (defn- ->CreateDisposition
   [disp]
   (case disp
-    :never org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO$Write$CreateDisposition/CREATE_NEVER
-    :if-needed org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO$Write$CreateDisposition/CREATE_IF_NEEDED))
+    :never BigQueryIO$Write$CreateDisposition/CREATE_NEVER
+    :if-needed BigQueryIO$Write$CreateDisposition/CREATE_IF_NEEDED))
 
 (defn- geojson-coord->jts-point
   "Given a coord [lng lat], return a JTS Point. Note that the geo lib expects
