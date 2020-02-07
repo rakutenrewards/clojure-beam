@@ -1,4 +1,4 @@
-(ns curbside.beam.test.utils.kafka
+(ns curbside.beam.utils.kafka-test
   "Curbside API outputs data to Kafka. This service is the interface to it."
   (:require
    [abracad.avro :as avro]

@@ -1,4 +1,4 @@
-(ns curbside.beam.java.window.test.calendar-window
+(ns curbside.beam.java.window.calendar-window-test
   (:require
    [clj-time.core :as t]
    [clj-time.format :as f]

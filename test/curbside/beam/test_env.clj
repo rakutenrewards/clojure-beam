@@ -1,4 +1,4 @@
-(ns curbside.beam.test.env
+(ns curbside.beam.test-env
   (:require
    [clojure.string :as string]))
 
