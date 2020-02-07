@@ -9,6 +9,10 @@ docker-compose up
 lein test
 ```
 
+## Code formatting
+
+Run `lein fix` to format Clojure code. 
+
 ## Releasing to Artifactory
 
 1. Retrieve Artifactory credentials from the eng.json bundle in

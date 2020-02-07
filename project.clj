@@ -102,6 +102,7 @@
             [lein-cloverage "1.0.13"
              :exclusions [org.clojure/clojure]]
             [lein-kibit "0.1.6"]]
+  :aliases {"fix" ["do" ["cljfmt" "fix"] ["how-to-ns" "fix"]]}
 
   :profiles
   {:test {:global-vars {*assert* true}
