@@ -1,15 +1,15 @@
-(ns curbside.beam.test.beam.transform.kafka-io-test
+(ns curbside.beam.transform.kafka-io-test
   (:require
    [abracad.avro :as avro]
    [abracad.helpers.schema :as schema]
    [clojure.test :refer [deftest is testing]]
    [curbside.beam.api :as beam]
-   [curbside.beam.test.env :as env]
-   [curbside.beam.test.schema-registry-util :as schema-registry-util]
-   [curbside.beam.test.utils.kafka :as kafka]
+   [curbside.beam.schema-registry-util :as schema-registry-util]
+   [curbside.beam.test-env :as env]
    [curbside.beam.testing :as beam.testing]
    [curbside.beam.transform.kafka-io :as kafka-io]
-   [curbside.beam.utils.avro :as avro-utils])
+   [curbside.beam.utils.avro :as avro-utils]
+   [curbside.beam.utils.kafka-test :as kafka])
   (:import
    (io.confluent.kafka.schemaregistry.client CachedSchemaRegistryClient)
    (java.util UUID)))

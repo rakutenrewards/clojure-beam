@@ -1,5 +1,6 @@
 (ns curbside.beam.transform.bigquery-io
   (:require
+   [clj-time.format :as format]
    [clojure.core.match :refer [match]]
    [clojure.string :as str]
    [clojure.string :as string]
@@ -11,7 +12,11 @@
   (:import
    (com.google.api.services.bigquery.model TableRow)
    (curbside.beam.java ClojureSerializableFunction)
-   (org.apache.beam.sdk.io.gcp.bigquery BigQueryIO BigQueryIO$Write$WriteDisposition BigQueryIO$Write$CreateDisposition)))
+   (org.apache.beam.sdk.io.gcp.bigquery BigQueryIO BigQueryIO$Write$WriteDisposition BigQueryIO$Write$CreateDisposition)
+   (org.joda.time DateTimeZone)
+   (org.joda.time.format ISODateTimeFormat)))
+
+(def formatter (format/formatter DateTimeZone/UTC :date-time :date-time-no-ms))
 
 (defn- ->WriteDisposition
   [disp]
@@ -67,6 +72,21 @@
     "Polygon" (geo-io/to-wkt (geojson-poly->Polygon coordinates))
     nil))
 
+(defn- format-timestamp
+  "Given a timestamp string coming from Kafka, formats it into an ISO8601 string
+   compatible with BigQuery.
+   Note that BQ's timestamp validation regex does not support all edge cases of
+   ISO8601. See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#timestamp-type
+   for more info."
+  [timestamp-str]
+  (try
+    (when (not-empty timestamp-str)
+      (when-let [datetime (format/parse formatter timestamp-str)]
+        (format/unparse (ISODateTimeFormat/dateTime) datetime)))
+    (catch Exception e
+      (log/debug "Could not parse timestamp" timestamp-str e)
+      (throw e))))
+
 ;; See https://beam.apache.org/documentation/io/built-in/google-bigquery/#data-types
 ;; for how to format data for BQ requests. Add more cases to this as we need
 ;; them.
@@ -82,7 +102,7 @@
   (try
     (match [type]
       [:int64] v
-      [:timestamp] (when (not-empty v) (str v))
+      [:timestamp] (format-timestamp v)
       [:string] v
       [:bool] v
       [:float64] v

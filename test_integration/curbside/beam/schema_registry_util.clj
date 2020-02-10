@@ -1,10 +1,10 @@
-(ns curbside.beam.test.schema-registry-util
+(ns curbside.beam.schema-registry-util
   (:require
    [abracad.avro :as avro]
    [abracad.helpers.schema :as schema]
-   [curbside.beam.test.env :as env]
-   [curbside.beam.test.utils.kafka :as kafka]
-   [curbside.beam.utils.avro :as avro-utils]))
+   [curbside.beam.test-env :as env]
+   [curbside.beam.utils.avro :as avro-utils]
+   [curbside.beam.utils.kafka-test :as kafka]))
 
 (def ^:private identity-map-capacity 1000)
 
