@@ -1,4 +1,4 @@
-(def ^:private apache-beam-version "2.16.0")
+(def ^:private apache-beam-version "2.19.0")
 (def ^:private slfj4-version "1.7.28")
 
 (defproject com.curbside/curbside-clojure-beam "0.1.7-SNAPSHOT"
@@ -45,6 +45,7 @@
 
    ;; beam
    [org.apache.beam/beam-sdks-java-io-kafka ~apache-beam-version]
+   [org.apache.beam/beam-sdks-java-io-jdbc ~apache-beam-version]
    [org.apache.beam/beam-sdks-java-core ~apache-beam-version]
    [org.apache.beam/beam-runners-direct-java ~apache-beam-version]
    [org.apache.beam/beam-runners-google-cloud-dataflow-java ~apache-beam-version

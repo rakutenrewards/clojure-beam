@@ -12,6 +12,7 @@ import org.apache.beam.sdk.transforms.windowing.WindowMappingFn;
 import org.joda.time.*;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,15 +40,29 @@ public class CalendarDaySlidingWindowFn extends NonMergingWindowFn<Object, Inter
         return new CalendarDaySlidingWindowFn(days, timezoneFn);
     }
 
+    public static CalendarDaySlidingWindowFn forSizeInDaysAndTimezoneFnAndVisibilityStart(int days, Var timezoneFn,
+                                                                                          DateTime visibilityStartDate) {
+        return new CalendarDaySlidingWindowFn(days, timezoneFn, visibilityStartDate);
+    }
+
     private static final DateTime DEFAULT_START_DATE = new DateTime(0, DateTimeZone.UTC);
     private static final Duration ONE_DAY = Duration.standardDays(1);
 
     private final Duration size;
     private final Var timezoneFn;
+    /** The date after which we need to see aggregations. If null then each element will be assigned to
+     * all sliding windows for that element. */
+    @Nullable private final DateTime visibilityStartDate;
 
     private CalendarDaySlidingWindowFn(int days, Var timezoneFn) {
+        this(days, timezoneFn, null);
+    }
+
+    private CalendarDaySlidingWindowFn(int days, Var timezoneFn,
+                                       @Nullable DateTime visibilityStartDate) {
         this.size = Duration.standardDays(days);
         this.timezoneFn = timezoneFn;
+        this.visibilityStartDate = visibilityStartDate;
     }
 
     @Override
@@ -64,7 +79,16 @@ public class CalendarDaySlidingWindowFn extends NonMergingWindowFn<Object, Inter
         for (long start = lastStart;
              start > c.timestamp().minus(size).getMillis();
              start -= ONE_DAY.getMillis()) {
-            windows.add(new IntervalWindow(new Instant(start), size));
+            final IntervalWindow window = new IntervalWindow(new Instant(start), size);
+            if (visibilityStartDate == null
+                || window.end().isAfter(visibilityStartDate)
+                // Note: we must at least assign each element to one window; clients that
+                // specify visibilityStartDate should generally filter or not expect
+                // elements that will not produce any sliding windows included by the
+                // visibilityStartDate -- or at least be okay that the associated windows
+                // are incomplete.
+                || start == lastStart)
+                windows.add(window);
         }
         return windows;
     }
