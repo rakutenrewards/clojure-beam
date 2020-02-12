@@ -7,7 +7,7 @@
    [curbside.beam.testing :as beam.testing])
   (:import
    (curbside.beam.java.window CalendarDayWindowFn CalendarDaySlidingWindowFn)
-   (org.apache.beam.sdk.testing PAssert)
+   (org.apache.beam.sdk.testing PAssert PAssert$IterableAssert)
    (org.apache.beam.sdk.transforms DoFn$ProcessContext)
    (org.apache.beam.sdk.transforms.windowing Window IntervalWindow)
    (org.apache.beam.sdk.values PCollection)
@@ -69,32 +69,122 @@
                      calendar-window-fn
                      (beam/pardo #'->color)
                      beam.testing/group-and-flatten*)]
+      ;; New Year's day in New York:
       (-> result
           (PAssert/that)
           (.inOnTimePane new-years-new-york)
           (.containsInAnyOrder [:orange :violet :green]))
+      ;; Day *after* New Year's day in New York:
       (-> result
           (PAssert/that)
           (.inOnTimePane (inc-interval-window new-years-new-york 1))
           (.containsInAnyOrder [:pink]))
+      ;; Day *before* New Year's day in New York should be EMPTY:
       (-> result
           (PAssert/that)
-          (.inOnTimePane (inc-interval-window new-years-new-york -1)) ; pathological
+          (.inOnTimePane (inc-interval-window new-years-new-york -1))
           (.empty))
+      ;; New Year's day in Cambodia:
       (-> result
           (PAssert/that)
           (.inOnTimePane new-years-cambodia)
           (.containsInAnyOrder [:red :yellow :blue]))
+      ;; Day *after* New Year's day in Cambodia:
       (-> result
           (PAssert/that)
           (.inOnTimePane (inc-interval-window new-years-cambodia 1))
           (.containsInAnyOrder [:indigo]))
+      ;; Day *before* New Year's day in Cambodia should be EMPTY:
       (-> result
           (PAssert/that)
-          (.inOnTimePane (inc-interval-window new-years-cambodia -1)) ; pathological
+          (.inOnTimePane (inc-interval-window new-years-cambodia -1))
           (.empty))
       (beam/run-pipeline
        pipeline (Duration/standardSeconds 30)))))
+
+(defn- contribute-sliding-window-assertions*
+  "Contribute common sliding window assertions; these assertions are very similar
+  for some tests so we consolidate it here for ease of reading tests."
+  ([^PCollection result] (contribute-sliding-window-assertions* result nil))
+  ([^PCollection result ^DateTime visibility-date?]
+   (letfn [(add-contains! [^PAssert$IterableAssert assertion
+                           ^IntervalWindow win
+                           ^Iterable asserted-coll]
+             (if (or (nil? visibility-date?) (-> win .end (.isAfter visibility-date?)))
+               (-> assertion (.containsInAnyOrder asserted-coll))
+               (-> assertion .empty)))]
+     ;; For New York, these windows should have the same elements:
+     ;;      * the three sequential days starting on New Year's (in New York)
+     ;;      * the three sequential days starting on New Year's eve (New York)
+     (doseq [win (map #(-> new-years-new-york
+                           (inc-interval-window (- %))
+                           (set-interval-window-duration 3))
+                      (range 2))]
+       (-> result
+           (beam.testing/assert-that* (format "for: %s" win))
+           (.inOnTimePane win)
+           (add-contains! win [:orange :violet :green :pink])))
+     ;; New York: three sequential days *ending* on New Year's (in New York)
+     (let [win (-> new-years-new-york
+                   (inc-interval-window -2)
+                   (set-interval-window-duration 3))]
+       (-> result
+           (beam.testing/assert-that* (format "for: %s" win))
+           (.inOnTimePane win)
+           (add-contains! win [:orange :violet :green])))
+     ;; New York: three sequential days starting *after* New Year's (in New York)
+     (let [win (-> new-years-new-york
+                   (inc-interval-window +1)
+                   (set-interval-window-duration 3))]
+       (-> result
+           (beam.testing/assert-that* (format "for: %s" win))
+           (.inOnTimePane win)
+           (add-contains! win [:pink])))
+     ;; New York: three sequential days starting *two days after* New Year's (in New York)
+     ;;  should be EMPTY:
+     (let [win (-> new-years-new-york
+                   (inc-interval-window +2)
+                   (set-interval-window-duration 3))]
+       (-> result
+           (beam.testing/assert-that* (format "for: %s" win))
+           (.inOnTimePane win)
+           (.empty)))
+     ;; For Cambodia, these windows should have the same elements:
+     ;;      * the three sequential days starting on New Year's (in Cambodia)
+     ;;      * the three sequential days starting on New Year's eve (Cambodia)
+     (doseq [win (map #(-> new-years-cambodia
+                           (inc-interval-window (- %))
+                           (set-interval-window-duration 3))
+                      (range 2))]
+       (-> result
+           (beam.testing/assert-that* (format "for: %s" win))
+           (.inOnTimePane win)
+           (add-contains! win [:red :yellow :blue :indigo])))
+     ;; Cambodia: three sequential days *ending* on New Year's (in Cambodia)
+     (let [win (-> new-years-cambodia
+                   (inc-interval-window -2)
+                   (set-interval-window-duration 3))]
+       (-> result
+           (beam.testing/assert-that* (format "for: %s" win))
+           (.inOnTimePane win)
+           (add-contains! win [:red :yellow :blue])))
+     ;; Cambodia: three sequential days starting *after* New Year's (in Cambodia)
+     (let [win (-> new-years-cambodia
+                   (inc-interval-window +1)
+                   (set-interval-window-duration 3))]
+       (-> result
+           (beam.testing/assert-that* (format "for: %s" win))
+           (.inOnTimePane win)
+           (add-contains! win [:indigo])))
+     ;; Cambodia: three sequential days starting *two days after* New Year's (in Cambodia)
+     ;;  should be EMPTY:
+     (let [win (-> new-years-cambodia
+                   (inc-interval-window +2)
+                   (set-interval-window-duration 3))]
+       (-> result
+           (beam.testing/assert-that* (format "for: %s" win))
+           (.inOnTimePane win)
+           (.empty))))))
 
 (deftest test-calendar-sliding-window
   (testing "calendar-sliding-window"
@@ -104,132 +194,17 @@
                      (calendar-sliding-window-fn 3)
                      (beam/pardo #'->color)
                      beam.testing/group-and-flatten*)]
-      (doseq [win (map #(-> new-years-new-york
-                            (inc-interval-window (- %))
-                            (set-interval-window-duration 3))
-                       (range 2))]
-        (-> result
-            (beam.testing/assert-that* (format "for: %s" win))
-            (.inOnTimePane win)
-            (.containsInAnyOrder [:orange :violet :green :pink])))
-      (let [win (-> new-years-new-york
-                    (inc-interval-window -2)
-                    (set-interval-window-duration 3))]
-        (-> result
-            (beam.testing/assert-that* (format "for: %s" win))
-            (.inOnTimePane win)
-            (.containsInAnyOrder [:orange :violet :green])))
-      (let [win (-> new-years-new-york
-                    (inc-interval-window +1)
-                    (set-interval-window-duration 3))]
-        (-> result
-            (beam.testing/assert-that* (format "for: %s" win))
-            (.inOnTimePane win)
-            (.containsInAnyOrder [:pink])))
-      (let [win (-> new-years-new-york
-                    (inc-interval-window +2)
-                    (set-interval-window-duration 3))]
-        (-> result
-            (beam.testing/assert-that* (format "for: %s" win))
-            (.inOnTimePane win)
-            (.empty)))
-      (doseq [win (map #(-> new-years-cambodia
-                            (inc-interval-window (- %))
-                            (set-interval-window-duration 3))
-                       (range 2))]
-        (-> result
-            (beam.testing/assert-that* (format "for: %s" win))
-            (.inOnTimePane win)
-            (.containsInAnyOrder [:red :yellow :blue :indigo])))
-      (let [win (-> new-years-cambodia
-                    (inc-interval-window -2)
-                    (set-interval-window-duration 3))]
-        (-> result
-            (beam.testing/assert-that* (format "for: %s" win))
-            (.inOnTimePane win)
-            (.containsInAnyOrder [:red :yellow :blue])))
-      (let [win (-> new-years-cambodia
-                    (inc-interval-window +1)
-                    (set-interval-window-duration 3))]
-        (-> result
-            (beam.testing/assert-that* (format "for: %s" win))
-            (.inOnTimePane win)
-            (.containsInAnyOrder [:indigo])))
-      (let [win (-> new-years-cambodia
-                    (inc-interval-window +2)
-                    (set-interval-window-duration 3))]
-        (-> result
-            (beam.testing/assert-that* (format "for: %s" win))
-            (.inOnTimePane win)
-            (.empty)))
-      (beam/run-pipeline
-       pipeline (Duration/standardSeconds 30)))))
+      (contribute-sliding-window-assertions* result)
+      (beam/run-pipeline pipeline (Duration/standardSeconds 30)))))
 
 (deftest test-calendar-sliding-window-with-visibility-date
   (testing "calendar-sliding-window-with-visibility-date"
     (let [pipeline (beam.testing/test-pipeline)
+          visibility-date (-> new-years-cambodia .end .toDateTime)
           result (-> pipeline
                      (beam/create-timestamped-pcoll test-data)
-                     (calendar-sliding-window-with-visibility-date-fn
-                      3 (-> new-years-cambodia .end .toDateTime))
+                     (calendar-sliding-window-with-visibility-date-fn 3 visibility-date)
                      (beam/pardo #'->color)
                      beam.testing/group-and-flatten*)]
-      (doseq [win (map #(-> new-years-new-york
-                            (inc-interval-window (- %))
-                            (set-interval-window-duration 3))
-                       (range 2))]
-        (-> result
-            (beam.testing/assert-that* (format "for: %s" win))
-            (.inOnTimePane win)
-            (.containsInAnyOrder [:orange :violet :green :pink])))
-      (let [win (-> new-years-new-york
-                    (inc-interval-window -2)
-                    (set-interval-window-duration 3))]
-        (-> result
-            (beam.testing/assert-that* (format "for: %s" win))
-            (.inOnTimePane win)
-            (.containsInAnyOrder [:orange :violet :green])))
-      (let [win (-> new-years-new-york
-                    (inc-interval-window +1)
-                    (set-interval-window-duration 3))]
-        (-> result
-            (beam.testing/assert-that* (format "for: %s" win))
-            (.inOnTimePane win)
-            (.containsInAnyOrder [:pink])))
-      (let [win (-> new-years-new-york
-                    (inc-interval-window +2)
-                    (set-interval-window-duration 3))]
-        (-> result
-            (beam.testing/assert-that* (format "for: %s" win))
-            (.inOnTimePane win)
-            (.empty)))
-      (doseq [win (map #(-> new-years-cambodia
-                            (inc-interval-window (- %))
-                            (set-interval-window-duration 3))
-                       (range 2))]
-        (-> result
-            (beam.testing/assert-that* (format "for: %s" win))
-            (.inOnTimePane win)
-            (.containsInAnyOrder [:red :yellow :blue :indigo])))
-      (let [win (-> new-years-cambodia
-                    (inc-interval-window -2)
-                    (set-interval-window-duration 3))]
-        (-> result
-            (beam.testing/assert-that* (format "for: %s" win))
-            (.inOnTimePane win)
-            (.empty)))
-      (let [win (-> new-years-cambodia
-                    (inc-interval-window +1)
-                    (set-interval-window-duration 3))]
-        (-> result
-            (beam.testing/assert-that* (format "for: %s" win))
-            (.inOnTimePane win)
-            (.containsInAnyOrder [:indigo])))
-      (let [win (-> new-years-cambodia
-                    (inc-interval-window +2)
-                    (set-interval-window-duration 3))]
-        (-> result
-            (beam.testing/assert-that* (format "for: %s" win))
-            (.inOnTimePane win)
-            (.empty)))
+      (contribute-sliding-window-assertions* result visibility-date)
       (beam/run-pipeline pipeline (Duration/standardSeconds 30)))))
