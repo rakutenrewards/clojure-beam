@@ -19,6 +19,8 @@
   - with-consumer-config-updates: Update consumer configuration with new properties.
   - with-topic: Sets the topic to read from.
   - with-max-num-records: Similar to org.apache.beam.sdk.io.Read.Unbounded#withMaxNumRecords(long). Mainly used for tests and demo applications.
+  - with-read-commited: Sets isolation.level to read-commited
+  - with-commit-offsets-in-finalize: Sets commitOffsetsInFinalizeEnabled to True
   - without-metadata: Returns a PTransform for PCollection of KV, dropping Kafka metatdata.
 
   Example
@@ -33,7 +35,7 @@
   See https://beam.apache.org/releases/javadoc/2.9.0/org/apache/beam/sdk/io/kafka/KafkaIO.html"
   [p {:keys [with-bootstrap-servers with-consumer-config-updates with-topic with-max-num-records
              ^Instant with-start-read-time with-create-time with-timestamp-policy-factory
-             with-value-deserializer-and-coder without-metadata step-name]}]
+             with-value-deserializer-and-coder without-metadata with-commit-offsets-in-finalize with-read-commited step-name]}]
   (let [kafka-transform (cond-> (KafkaIO/readBytes)
                           with-bootstrap-servers (.withBootstrapServers with-bootstrap-servers)
                           with-consumer-config-updates (.withConsumerConfigUpdates with-consumer-config-updates)
@@ -44,6 +46,8 @@
                           with-value-deserializer-and-coder (.withValueDeserializerAndCoder (first with-value-deserializer-and-coder)
                                                                                             (second with-value-deserializer-and-coder))
                           with-timestamp-policy-factory (.withTimestampPolicyFactory with-timestamp-policy-factory)
+                          with-commit-offsets-in-finalize (.commitOffsetsInFinalize)
+                          with-read-commited (.withReadCommitted)
                           without-metadata (.withoutMetadata))]
     (-> p
         (cond-> (instance? Pipeline p) (PBegin/in))
