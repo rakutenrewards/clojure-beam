@@ -14,10 +14,12 @@ import org.joda.time.*;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -48,7 +50,7 @@ public class CalendarDaySlidingWindowFn extends NonMergingWindowFn<Object, Inter
     private static final DateTime DEFAULT_START_DATE = new DateTime(0, DateTimeZone.UTC);
     private static final Duration ONE_DAY = Duration.standardDays(1);
 
-    private final Duration size;
+    private final int days;
     private final Var timezoneFn;
     /** The date after which we need to see aggregations. If null then each element will be assigned to
      * all sliding windows for that element. */
@@ -60,7 +62,7 @@ public class CalendarDaySlidingWindowFn extends NonMergingWindowFn<Object, Inter
 
     private CalendarDaySlidingWindowFn(int days, Var timezoneFn,
                                        @Nullable DateTime visibilityStartDate) {
-        this.size = Duration.standardDays(days);
+        this.days = days;
         this.timezoneFn = timezoneFn;
         this.visibilityStartDate = visibilityStartDate;
     }
@@ -74,21 +76,31 @@ public class CalendarDaySlidingWindowFn extends NonMergingWindowFn<Object, Inter
     public Collection<IntervalWindow> assignWindows(AssignContext c) {
         @Nonnull final DateTimeZone tz = checkNotNull((DateTimeZone) timezoneFn.invoke(c.element()));
 
-        final List<IntervalWindow> windows = new ArrayList<>((int) (size.getMillis() / ONE_DAY.getMillis()));
-        final long lastStart = lastStartFor(c.timestamp(), tz);
-        for (long start = lastStart;
-             start > c.timestamp().minus(size).getMillis();
-             start -= ONE_DAY.getMillis()) {
-            final IntervalWindow window = new IntervalWindow(new Instant(start), size);
-            if (visibilityStartDate == null
-                || window.end().isAfter(visibilityStartDate)
-                // Note: we must at least assign each element to one window; clients that
-                // specify visibilityStartDate should generally filter or not expect
-                // elements that will not produce any sliding windows included by the
-                // visibilityStartDate -- or at least be okay that the associated windows
-                // are incomplete.
-                || start == lastStart)
-                windows.add(window);
+        // Note: we are careful to use DST-respectful math (i.e., .plusDays) to ensure
+        //    that for any given element, when we produce the prior "day" windows that
+        //    these windows are produced in a stable fashion for the given timezone --
+        //    that is, EVERY DAY IN A GIVEN TIMEZONE has one and *only one* window
+        //    regardless of the input element that generated the day window.
+
+        final DateTime lastStart = lastStartFor(c.timestamp(), tz);
+        final List<IntervalWindow> windows = IntStream
+            .range(0, days)
+            .mapToObj(i -> {
+                final DateTime windowStart = lastStart.minusDays(i);
+                return new IntervalWindow(
+                    new Instant(windowStart),
+                    new Instant(windowStart.plusDays(this.days)));
+            })
+            .filter(w -> visibilityStartDate == null
+                || w.end().isAfter(visibilityStartDate))
+            .collect(Collectors.toList());
+        if (windows.isEmpty()) {
+            // visibilityStartDate filter excluded everything; but beam
+            //   requires at least one window; add latest possible window
+            //   as singleton:
+            return Collections.singleton(new IntervalWindow(
+                new Instant(lastStart),
+                new Instant(lastStart.plusDays(this.days))));
         }
         return windows;
     }
@@ -115,14 +127,14 @@ public class CalendarDaySlidingWindowFn extends NonMergingWindowFn<Object, Inter
     /**
      * Return the last start of a sliding window that contains the timestamp.
      */
-    private long lastStartFor(Instant timestamp, DateTimeZone tz) {
+    private DateTime lastStartFor(Instant timestamp, @Nonnull DateTimeZone tz) {
         // note: epoch at certain timezone is negative millis epoch (i.e., joda handles this correctly)
         DateTime epoch = DEFAULT_START_DATE.withZoneRetainFields(tz);
         DateTime current = new DateTime(timestamp, tz);
 
         int dayOffset = Days.daysBetween(epoch, current).getDays();
 
-        return epoch.plusDays(dayOffset).getMillis();
+        return epoch.plusDays(dayOffset);
     }
 
     /**
@@ -146,13 +158,13 @@ public class CalendarDaySlidingWindowFn extends NonMergingWindowFn<Object, Inter
             return false;
         }
         CalendarDaySlidingWindowFn other = (CalendarDaySlidingWindowFn) object;
-        return size == other.size
+        return days == other.days
             && timezoneFn.equals(other.timezoneFn);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(size, timezoneFn);
+        return Objects.hash(days, timezoneFn);
     }
 
     private void readObject(java.io.ObjectInputStream stream)
