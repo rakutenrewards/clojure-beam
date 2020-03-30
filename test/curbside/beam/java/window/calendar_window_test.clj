@@ -3,9 +3,9 @@
    [clj-time.core :as t]
    [clj-time.format :as f]
    [clojure.test :refer [deftest is testing]]
+   [clojure.tools.logging :as log]
    [curbside.beam.api :as beam]
-   [curbside.beam.testing :as beam.testing]
-   [clojure.tools.logging :as log])
+   [curbside.beam.testing :as beam.testing])
   (:import
    (curbside.beam.java.window CalendarDayWindowFn CalendarDaySlidingWindowFn)
    (org.apache.beam.sdk.testing PAssert PAssert$IterableAssert)
@@ -20,13 +20,13 @@
   "Increment/slide the window by `n` days."
   [^IntervalWindow window n ^DateTimeZone tz]
   (IntervalWindow.
-    (.toInstant (.plusDays (.toDateTime (.start window) tz) n))
-    (.toInstant (.plusDays (.toDateTime (.end window) tz) n))))
+   (.toInstant (.plusDays (.toDateTime (.start window) tz) n))
+   (.toInstant (.plusDays (.toDateTime (.end window) tz) n))))
 
 (defn- set-interval-window-duration
   [^IntervalWindow window n ^DateTimeZone tz]
   (IntervalWindow. (.start window)
-    (.toInstant (.plusDays (.toDateTime (.start window) tz) n))))
+                   (.toInstant (.plusDays (.toDateTime (.start window) tz) n))))
 
 (defn- calendar-window-fn
   [^PCollection pcoll]
@@ -231,7 +231,7 @@
     due to Daylight Savings Time in 2019."
   [year month day hour minute second tz]
   (t/from-time-zone (t/date-time year month day hour minute second)
-    (if (string? tz) (DateTimeZone/forID tz) tz)))
+                    (if (string? tz) (DateTimeZone/forID tz) tz)))
 
 (def ^:private test-data-daylight-savings
   [[{:color :alpha :tz "America/New_York"} (clock-in-timezone->dt 2019 3 9 0 30 0 "America/New_York")]
@@ -244,8 +244,7 @@
    [{:color :zeta :tz "America/New_York"} (clock-in-timezone->dt 2019 11 3 0 30 0 "America/New_York")]
    ;; After DST "fall-back" on 11/03/2019 in New York:
    [{:color :eta :tz "America/New_York"} (clock-in-timezone->dt 2019 11 3 2 30 0 "America/New_York")]
-   [{:color :theta :tz "America/New_York"} (clock-in-timezone->dt 2019 12 1 2 30 0 "America/New_York")]
-   ])
+   [{:color :theta :tz "America/New_York"} (clock-in-timezone->dt 2019 12 1 2 30 0 "America/New_York")]])
 
 (deftest test-calendar-sliding-window-daylight-savings-scenarios
   (testing "test-calendar-sliding-window-daylight-savings-scenarios"
@@ -259,58 +258,58 @@
 
       (-> (PAssert/that result)
           (.inWindow (IntervalWindow.
-                       (.toInstant (clock-in-timezone->dt 2019 2 8 0 0 0 "America/New_York"))
-                       (.toInstant (clock-in-timezone->dt 2019 3 10 0 0 0 "America/New_York"))))
+                      (.toInstant (clock-in-timezone->dt 2019 2 8 0 0 0 "America/New_York"))
+                      (.toInstant (clock-in-timezone->dt 2019 3 10 0 0 0 "America/New_York"))))
           (.containsInAnyOrder [:alpha]))
 
       (-> (PAssert/that result)
           (.inWindow (IntervalWindow.
-                       (.toInstant (clock-in-timezone->dt 2019 2 9 0 0 0 "America/New_York"))
-                       (.toInstant (clock-in-timezone->dt 2019 3 11 0 0 0 "America/New_York"))))
+                      (.toInstant (clock-in-timezone->dt 2019 2 9 0 0 0 "America/New_York"))
+                      (.toInstant (clock-in-timezone->dt 2019 3 11 0 0 0 "America/New_York"))))
           (.containsInAnyOrder [:alpha :beta :gamma]))
 
       (-> (PAssert/that result)
           (.inWindow (IntervalWindow.
-                       (.toInstant (clock-in-timezone->dt 2019 2 10 0 0 0 "America/New_York"))
-                       (.toInstant (clock-in-timezone->dt 2019 3 12 0 0 0 "America/New_York"))))
+                      (.toInstant (clock-in-timezone->dt 2019 2 10 0 0 0 "America/New_York"))
+                      (.toInstant (clock-in-timezone->dt 2019 3 12 0 0 0 "America/New_York"))))
           (.containsInAnyOrder [:alpha :beta :gamma :delta]))
 
       (-> (PAssert/that result)
           (.inWindow (IntervalWindow.
-                       (.toInstant (clock-in-timezone->dt 2019 3 10 0 0 0 "America/New_York"))
-                       (.toInstant (clock-in-timezone->dt 2019 4 9 0 0 0 "America/New_York"))))
+                      (.toInstant (clock-in-timezone->dt 2019 3 10 0 0 0 "America/New_York"))
+                      (.toInstant (clock-in-timezone->dt 2019 4 9 0 0 0 "America/New_York"))))
           (.containsInAnyOrder [:beta :gamma :delta :epsilon]))
 
       (-> (PAssert/that result)
           (.inWindow (IntervalWindow.
-                       (.toInstant (clock-in-timezone->dt 2019 3 11 0 0 0 "America/New_York"))
-                       (.toInstant (clock-in-timezone->dt 2019 4 10 0 0 0 "America/New_York"))))
+                      (.toInstant (clock-in-timezone->dt 2019 3 11 0 0 0 "America/New_York"))
+                      (.toInstant (clock-in-timezone->dt 2019 4 10 0 0 0 "America/New_York"))))
           (.containsInAnyOrder [:delta :epsilon]))
 
       ;; -- scenarios that cover "fall-back" in 2019 in New York --
 
       (-> (PAssert/that result)
           (.inWindow (IntervalWindow.
-                       (.toInstant (clock-in-timezone->dt 2019 10 4 0 0 0 "America/New_York"))
-                       (.toInstant (clock-in-timezone->dt 2019 11 03 0 0 0 "America/New_York"))))
+                      (.toInstant (clock-in-timezone->dt 2019 10 4 0 0 0 "America/New_York"))
+                      (.toInstant (clock-in-timezone->dt 2019 11 03 0 0 0 "America/New_York"))))
           (.empty))
 
       (-> (PAssert/that result)
           (.inWindow (IntervalWindow.
-                       (.toInstant (clock-in-timezone->dt 2019 10 5 0 0 0 "America/New_York"))
-                       (.toInstant (clock-in-timezone->dt 2019 11 04 0 0 0 "America/New_York"))))
+                      (.toInstant (clock-in-timezone->dt 2019 10 5 0 0 0 "America/New_York"))
+                      (.toInstant (clock-in-timezone->dt 2019 11 04 0 0 0 "America/New_York"))))
           (.containsInAnyOrder [:eta :zeta]))
 
       (-> (PAssert/that result)
           (.inWindow (IntervalWindow.
-                       (.toInstant (clock-in-timezone->dt 2019 10 5 0 0 0 "America/New_York"))
-                       (.toInstant (clock-in-timezone->dt 2019 11 4 0 0 0 "America/New_York"))))
+                      (.toInstant (clock-in-timezone->dt 2019 10 5 0 0 0 "America/New_York"))
+                      (.toInstant (clock-in-timezone->dt 2019 11 4 0 0 0 "America/New_York"))))
           (.containsInAnyOrder [:eta :zeta]))
 
       (-> (PAssert/that result)
           (.inWindow (IntervalWindow.
-                       (.toInstant (clock-in-timezone->dt 2019 11 3 0 0 0 "America/New_York"))
-                       (.toInstant (clock-in-timezone->dt 2019 12 3 0 0 0 "America/New_York"))))
+                      (.toInstant (clock-in-timezone->dt 2019 11 3 0 0 0 "America/New_York"))
+                      (.toInstant (clock-in-timezone->dt 2019 12 3 0 0 0 "America/New_York"))))
           (.containsInAnyOrder [:eta :zeta :theta]))
 
       (beam/run-pipeline pipeline (Duration/standardSeconds 30)))))
