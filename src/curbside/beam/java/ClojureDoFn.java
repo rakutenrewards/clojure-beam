@@ -31,6 +31,8 @@ public class ClojureDoFn extends DoFn<Object, Object> {
     private final Map<String, PCollectionView<?>> sideInputs;
     @Nullable
     private final List<TupleTag<?>> tupleTags;
+    @Nullable
+    private Object customContext;
 
     public ClojureDoFn(Map<String, Var> fns_map, Map runtimeParameters) {
         this(fns_map, runtimeParameters, emptyMap());
@@ -40,9 +42,9 @@ public class ClojureDoFn extends DoFn<Object, Object> {
         this(fns_map, runtimeParameters, sideInputs, emptyList());
     }
 
-    public ClojureDoFn(Map<String, Var> fns_map, Map runtimeParameters, Map<String, PCollectionView<?>> sideInputs,
-                       List<TupleTag<?>> tupleTags) {
+    public ClojureDoFn(Map<String, Var> fns_map, Map runtimeParameters, Map<String, PCollectionView<?>> sideInputs, List<TupleTag<?>> tupleTags) {
         super();
+        this.customContext = null;
         this.processElement = fns_map.get("processElementFn");
         this.startBundle = fns_map.get("startBundleFn");
         this.finishBundle = fns_map.get("finishBundleFn");
@@ -64,7 +66,7 @@ public class ClojureDoFn extends DoFn<Object, Object> {
         ClojureRequire.require_(teardown);
 
         if (setup != null)
-            setup.invoke(PersistentHashMap.create(Keyword.intern("runtime-parameters"), runtimeParameters));
+            this.customContext = setup.invoke(PersistentHashMap.create(Keyword.intern("runtime-parameters"), runtimeParameters));
     }
 
     @StartBundle
@@ -74,14 +76,15 @@ public class ClojureDoFn extends DoFn<Object, Object> {
     }
 
     @ProcessElement
-    public void processElement(ProcessContext c, BoundedWindow window) {
-        invokeProcessElement(c, window, PersistentHashMap.create());
+    public void processElement(ProcessContext processContext, BoundedWindow window) {
+        invokeProcessElement(processContext, window, PersistentHashMap.create());
     }
 
-    void invokeProcessElement(ProcessContext c, BoundedWindow window, IPersistentMap params) {
+    void invokeProcessElement(ProcessContext processContext, BoundedWindow window, IPersistentMap params) {
         processElement.invoke(params
-            .assoc(Keyword.intern("process-context"), c)
+            .assoc(Keyword.intern("process-context"), processContext)
             .assoc(Keyword.intern("current-window"), window)
+            .assoc(Keyword.intern("custom-context"), this.customContext)
             .assoc(Keyword.intern("runtime-parameters"), runtimeParameters)
             .assoc(Keyword.intern("side-inputs"), sideInputs)
             .assoc(Keyword.intern("tuple-tags"), tupleTags));
@@ -95,7 +98,8 @@ public class ClojureDoFn extends DoFn<Object, Object> {
 
     @Teardown
     public void teardown() {
+        PersistentHashMap parameters = PersistentHashMap.create(Keyword.intern("runtime-parameters"), runtimeParameters);
         if (teardown != null)
-            teardown.invoke(PersistentHashMap.create(Keyword.intern("runtime-parameters"), runtimeParameters));
+            teardown.invoke(parameters.assoc(Keyword.intern("custom-context"), this.customContext));
     }
 }
