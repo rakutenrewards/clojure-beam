@@ -70,8 +70,9 @@
   (str/replace (name x) \- \_))
 
 (defn gauge-java [datadog metric ^double value tags]
-  (when datadog
-    (.gauge datadog metric value tags)))
+  (if datadog
+    (.gauge datadog metric value tags)
+    (log/warn "No datadog client provided for gauge: " metric)))
 
 (defn gauge
   ([datadog metric value]
