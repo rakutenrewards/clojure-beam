@@ -25,6 +25,14 @@
     (catch Exception e
       (log/error e "Failed to stop StatsD client!"))))
 
+(defn setup-datadog
+  "Use this function as the setup function of pardo functions to add datadog support"
+  [{:keys [runtime-parameters]}]
+  (let [{:keys [datadog-config]} runtime-parameters
+        {:keys [enabled]} datadog-config]
+    (when (boolean enabled)
+      {:datadog-client (start-client datadog-config)})))
+
 (def ^:private string-array-class
   "Reference to Java's `String[]` type. Used for type annotations."
   (Class/forName "[Ljava.lang.String;"))
@@ -62,7 +70,8 @@
   (str/replace (name x) \- \_))
 
 (defn gauge-java [datadog metric ^double value tags]
-  (.gauge datadog metric value tags))
+  (when datadog
+    (.gauge datadog metric value tags)))
 
 (defn gauge
   ([datadog metric value]
@@ -74,37 +83,57 @@
   ([datadog metric]
    (inc datadog metric empty-tags))
   ([datadog metric tags]
-   (.increment datadog (dash->underscore metric) (coerce-array tags))))
+   (if datadog
+     (.increment datadog (dash->underscore metric) (coerce-array tags))
+     (log/warn "No datadog client provided for inc: " metric))))
 
 (defn dec
   ([datadog metric]
    (dec datadog metric empty-tags))
   ([datadog metric tags]
-   (.decrement datadog (dash->underscore metric) (coerce-array tags))))
+   (if datadog
+     (.decrement datadog (dash->underscore metric) (coerce-array tags))
+     (log/warn "No datadog client provided for dec: " metric))))
 
 (defn count
   ([datadog metric delta]
    (count datadog metric delta empty-tags))
   ([datadog metric ^long delta tags]
-   (.count datadog (dash->underscore metric) delta (coerce-array tags))))
+   (if datadog
+     (.count datadog (dash->underscore metric) delta (coerce-array tags))
+     (log/warn "No datadog client provided for count: " metric))))
 
 (defn set
   ([datadog metric value]
    (set datadog metric value empty-tags))
   ([datadog metric value tags]
-   (.recordSetValue datadog (dash->underscore metric) value (coerce-array tags))))
+   (if datadog
+     (.recordSetValue datadog (dash->underscore metric) value (coerce-array tags))
+     (log/warn "No datadog client provided for set: " metric))))
 
 (defn histogram
   ([datadog metric value]
    (histogram datadog metric value empty-tags))
   ([datadog metric value tags]
-   (.histogram datadog (dash->underscore metric) (double value) (coerce-array tags))))
+   (if datadog
+     (.histogram datadog (dash->underscore metric) (double value) (coerce-array tags))
+     (log/warn "No datadog client provided for histogram: " metric))))
+
+(defn distribution
+  ([datadog metric value]
+   (distribution datadog metric value empty-tags))
+  ([datadog metric value tags]
+   (if datadog
+     (.recordDistributionValue datadog (dash->underscore metric) (double value) (coerce-array tags))
+     (log/warn "No datadog client provided for distribution: " metric))))
 
 (defn timing
   ([datadog metric ms-timestamp]
    (timing datadog metric ms-timestamp empty-tags))
   ([datadog metric ^long ms-timestamp tags]
-   (.recordExecutionTime datadog (dash->underscore metric) ms-timestamp (coerce-array tags))))
+   (if datadog
+     (.recordExecutionTime datadog (dash->underscore metric) ms-timestamp (coerce-array tags))
+     (log/warn "No datadog client provided for timing: " metric))))
 
 (defmacro timed
   "Times the execution of `body` and report it to `timing`."
@@ -136,6 +165,3 @@
    (.recordEvent ^NonBlockingStatsDClient client
                  (event* title text type)
                  (coerce-array tags))))
-
-(defn make-client [{_host :host _port :port _prefix :prefix :as datadog-cfg}]
-  (start-client datadog-cfg))

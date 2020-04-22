@@ -66,11 +66,11 @@
    [metosin/jsonista "0.2.5"]
    [camel-snake-kebab "0.4.0"]
 
-   ;; 3rd-Party Services
-   [com.indeed/java-dogstatsd-client "2.0.16"]
-
    ;; geography utilities
-   [factual/geo "2.1.1"]]
+   [factual/geo "2.1.1"]
+
+   ;; Datadog
+   [com.datadoghq/java-dogstatsd-client "2.9.0"]]
 
   :how-to-ns {:require-docstring? false
               :sort-clauses? true

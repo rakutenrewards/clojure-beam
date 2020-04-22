@@ -13,3 +13,7 @@ pom.xml.asc
 /test-reports
 build.xml
 .eastwood
+
+# cursive
+.idea
+*.iml
