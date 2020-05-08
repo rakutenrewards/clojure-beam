@@ -16,10 +16,10 @@
    (java.nio ByteBuffer)
    (org.apache.beam.sdk.transforms PTransform DoFn$ProcessContext)
    (org.apache.beam.sdk.values KV)
-   (org.joda.time Instant)
+   (org.apache.kafka.clients CommonClientConfigs)
    (org.apache.kafka.common.config SslConfigs SaslConfigs)
    (org.apache.kafka.common.security.auth SecurityProtocol)
-   (org.apache.kafka.clients CommonClientConfigs)))
+   (org.joda.time Instant)))
 
 (defn- deserialize-kafka-bytes
   "Deserialize Kafka bytes, but before parsing the Avro messsage, we make sure it is
