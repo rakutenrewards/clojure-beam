@@ -86,8 +86,8 @@
                                                           :subject->reader-schema subject->reader-schema}}]
     (if (and (not (string/blank? confluent-api-secret)) (not (string/blank? confluent-api-secret)))
       (assoc base-config
-             SslConfigs/SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG SecurityProtocol/SSL
-             CommonClientConfigs/SECURITY_PROTOCOL_CONFIG SecurityProtocol/SASL_SSL
+             SslConfigs/SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG (.name SecurityProtocol/SSL)
+             CommonClientConfigs/SECURITY_PROTOCOL_CONFIG (.name SecurityProtocol/SASL_SSL)
              SaslConfigs/SASL_MECHANISM "PLAIN"
              SaslConfigs/SASL_JAAS_CONFIG (format "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"%s\" password=\"%s\";" confluent-api-key confluent-api-secret))
       base-config)))
