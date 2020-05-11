@@ -28,7 +28,7 @@
 
    (We do this manually here so we can optimize which messages we parse, but this
     can/should be generalized.)"
-  [^"[B" record-bytes {:keys [runtime-config]}]
+  [_kafka-topic ^"[B" record-bytes {:keys [runtime-config]}]
   (let [schema-registry (schema-registry/make-client (:schema-registry-cfg runtime-config))
         schema-id (.getInt (ByteBuffer/wrap record-bytes 1 4))
         writer-schema (.getById ^CachedSchemaRegistryClient schema-registry schema-id)
