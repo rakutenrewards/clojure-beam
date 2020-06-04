@@ -7,32 +7,6 @@
   (:import
    (com.timgroup.statsd NonBlockingStatsDClient Event Event$AlertType)))
 
-(defn start-client* [{:keys [host port prefix]}]
-  (try
-    (log/infof "Starting the StatsD client on %s:%s with prefix=%s"
-               host port prefix)
-    (NonBlockingStatsDClient. prefix host port)
-    (catch Exception e
-      (log/error e "Failed to start the StatsD client!"))))
-
-(def start-client
-  (memoize start-client*))
-
-(defn stop-client [^NonBlockingStatsDClient client]
-  (try
-    (log/info "Stopping StatsD client...")
-    (.stop client)
-    (catch Exception e
-      (log/error e "Failed to stop StatsD client!"))))
-
-(defn setup-datadog
-  "Use this function as the setup function of pardo functions to add datadog support"
-  [{:keys [runtime-parameters]}]
-  (let [{:keys [datadog-config]} runtime-parameters
-        {:keys [enabled]} datadog-config]
-    (when (boolean enabled)
-      {:datadog-client (start-client datadog-config)})))
-
 (def ^:private string-array-class
   "Reference to Java's `String[]` type. Used for type annotations."
   (Class/forName "[Ljava.lang.String;"))
@@ -63,6 +37,32 @@
 
         :else
         (into-array String coll)))
+
+(defn start-client* [{:keys [host port prefix constant-tags]}]
+  (try
+    (log/infof "Starting the StatsD client on %s:%s with prefix=%s"
+               host port prefix)
+    (NonBlockingStatsDClient. prefix host port (coerce-array constant-tags))
+    (catch Exception e
+      (log/error e "Failed to start the StatsD client!"))))
+
+(def start-client
+  (memoize start-client*))
+
+(defn stop-client [^NonBlockingStatsDClient client]
+  (try
+    (log/info "Stopping StatsD client...")
+    (.stop client)
+    (catch Exception e
+      (log/error e "Failed to stop StatsD client!"))))
+
+(defn setup-datadog
+  "Use this function as the setup function of pardo functions to add datadog support"
+  [{:keys [runtime-parameters]}]
+  (let [{:keys [datadog-config]} runtime-parameters
+        {:keys [enabled]} datadog-config]
+    (when (boolean enabled)
+      {:datadog-client (start-client datadog-config)})))
 
 (defn- ^String dash->underscore
   "Converts `-` to `_` in `x`"
