@@ -1,5 +1,6 @@
 (ns curbside.beam.schema-registry.api
-  (:require [clojure.tools.logging :as log])
+  (:require
+   [clojure.tools.logging :as log])
   (:import
    (io.confluent.kafka.schemaregistry.client CachedSchemaRegistryClient)
    (io.confluent.kafka.schemaregistry.client.rest RestService)))
