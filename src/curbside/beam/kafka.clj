@@ -72,9 +72,17 @@
     (when (not= elem ::ignored-kakfa-message)
       (.output process-context elem))))
 
+(defn- schema-registry-config
+  [{:keys [schema-registry-url schema-registry-access-key schema-registry-secret-key] :as _options}]
+  (let [base-config {:url schema-registry-url :cache-capacity 100}]
+    (if (and schema-registry-access-key schema-registry-secret-key)
+      (assoc base-config :auth {"basic.auth.credentials.source" "USER_INFO"
+                                "basic.auth.user.info" (format "%s:%s" schema-registry-access-key schema-registry-secret-key)})
+      base-config)))
+
 (defn- generate-kafka-consumer-config
   [job-name subject->reader-schema
-   {:keys [kafka-offset-reset deploy-namespace schema-registry-url confluent-api-key confluent-api-secret] :as _options}]
+   {:keys [kafka-offset-reset deploy-namespace confluent-api-key confluent-api-secret] :as options}]
   (let [base-config {"auto.offset.reset" kafka-offset-reset
                      "group.id" (format "%s/%s" deploy-namespace job-name)
                      ;; We are going to use our own custom Kafka deserializer but KafkaIO won't
@@ -82,7 +90,7 @@
                      ;;   "pass" it the Clojure deserializer function (and config):
                      "clojure.kafka-deserializer.fn" #'deserialize-kafka-bytes
                      "clojure.kafka-deserializer.require-vars" [subject->reader-schema]
-                     "clojure.kafka-deserializer.config" {:schema-registry-cfg {:url schema-registry-url :cache-capacity 100}
+                     "clojure.kafka-deserializer.config" {:schema-registry-cfg (schema-registry-config options)
                                                           :subject->reader-schema subject->reader-schema}}]
     (if (and (not (string/blank? confluent-api-secret)) (not (string/blank? confluent-api-secret)))
       (assoc base-config
