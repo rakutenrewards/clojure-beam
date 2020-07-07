@@ -11,6 +11,7 @@ import org.apache.beam.sdk.io.kafka.TimestampPolicyFactory;
 import org.apache.beam.sdk.transforms.windowing.BoundedWindow;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.joda.time.Instant;
 
 import java.io.IOException;
@@ -50,6 +51,60 @@ public final class ClojureKafkaSupport {
         @Override
         public void close() {}
 
+    }
+
+    /**
+     * ClojureKafkaKeySerializer.
+     */
+    public static class KafkaKeySerializer implements Serializer<Object> {
+        private Var serializeFn;
+        private Object serializeConfig;
+
+        @Override
+        public void configure(Map<String, ?> configs, boolean isKey) {
+            this.serializeFn = (Var)configs.get("clojure.kafka-key-serializer.fn");
+            this.serializeConfig = configs.get("clojure.kafka-serializer.config");
+
+            ClojureRequire.require_(this.serializeFn);
+        }
+
+        @Override
+        public byte[] serialize(String topic, Object data) {
+            return (byte[]) this.serializeFn.invoke(topic, data,
+                PersistentHashMap.create(
+                    Keyword.intern("runtime-config"), this.serializeConfig));
+        }
+
+        @Override
+        public void close() {
+        }
+    }
+
+    /**
+     * ClojureKafkaValueSerializer.
+     */
+    public static class KafkaValueSerializer implements Serializer<Object> {
+        private Var serializeFn;
+        private Object serializeConfig;
+
+        @Override
+        public void configure(Map<String, ?> configs, boolean isKey) {
+            this.serializeFn = (Var)configs.get("clojure.kafka-value-serializer.fn");
+            this.serializeConfig = configs.get("clojure.kafka-serializer.config");
+
+            ClojureRequire.require_(this.serializeFn);
+        }
+
+        @Override
+        public byte[] serialize(String topic, Object data) {
+            return (byte[]) this.serializeFn.invoke(topic, data,
+                PersistentHashMap.create(
+                    Keyword.intern("runtime-config"), this.serializeConfig));
+        }
+
+        @Override
+        public void close() {
+        }
     }
 
     /**

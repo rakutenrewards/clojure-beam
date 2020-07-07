@@ -99,6 +99,12 @@
              SaslConfigs/SASL_JAAS_CONFIG (format "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"%s\" password=\"%s\";" confluent-api-key confluent-api-secret))
       base-config)))
 
+(defn generate-kafka-producer-config
+  [schema-registry-config-params serialize-kafka-key-var serialize-kafka-value-var]
+  {"clojure.kafka-serializer.config" {:schema-registry-cfg (schema-registry-config schema-registry-config-params)}
+   "clojure.kafka-key-serializer.fn" serialize-kafka-key-var
+   "clojure.kafka-value-serializer.fn" serialize-kafka-value-var})
+
 (defn ^PTransform make-kafka-input-xf
   "Create a (composite) transform that reads from a Kafka topic and emits Avro-decoded
    events (Clojure maps) downstream.

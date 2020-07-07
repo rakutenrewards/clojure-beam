@@ -4,6 +4,7 @@
    [abracad.helpers.schema :as schema]
    [curbside.beam.test-env :as env]
    [curbside.beam.utils.avro :as avro-utils]
+   [curbside.common.avro-schemas.core :as core]
    [curbside.beam.utils.kafka-test :as kafka]))
 
 (def ^:private identity-map-capacity 1000)
@@ -35,4 +36,5 @@
    See https://github.com/RakutenReady/curbside-avro-schemas/tree/master#using-schemas-locally"
   []
   (register-schemas (conj (vals avro-utils/default-subject->reader-schema)
+                          core/string-edn-v1-parsed
                           (avro/parse-schema schema/uuid))))

@@ -57,7 +57,7 @@
     :exclusions [org.apache.kafka/kafka-clients]]
    [curbside/abracad "0.4.21"] ; AVRO for Clojure
    [org.apache.avro/avro "1.9.1"]
-   [curbside-avro-schemas "0.0.34"]
+   [curbside-avro-schemas "0.0.45"]
 
    ;; redis
    [com.taoensso/carmine "2.19.1"]
