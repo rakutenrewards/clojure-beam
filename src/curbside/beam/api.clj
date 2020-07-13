@@ -119,9 +119,9 @@
   [^Pipeline pipeline coll]
   (cond
     (instance? Map coll)
-    (-> pipeline (.apply (Create/of ^Map coll)) (.setCoder (nippy-coder/make-kv-coder)))
+    (-> pipeline (.apply (-> (Create/of ^Map coll) (.withCoder (nippy-coder/make-kv-coder)))))
     (seqable? coll)
-    (-> pipeline (.apply (Create/of ^Iterable (seq coll))) (.setCoder (nippy-coder/make-custom-coder)))))
+    (-> pipeline (.apply (-> (Create/of ^Iterable (seq coll)) (.withCoder (nippy-coder/make-custom-coder)))))))
 
 (defn ^PCollection create-timestamped-pcoll
   "Like `create-pcoll` but accepts only a seqable `coll` of vectors where the first
