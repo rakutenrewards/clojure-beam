@@ -1,19 +1,20 @@
 (ns curbside.beam.transform.kafka-io
   (:require
    [curbside.beam.api :as beam]
+   [curbside.beam.nippy-coder :as nippy-coder]
    [curbside.beam.schema-registry.api :as schema-registry]
    [curbside.beam.utils.avro :as avro])
   (:import
    (org.apache.beam.sdk Pipeline)
    (org.apache.beam.sdk.io.kafka KafkaIO)
    (org.apache.beam.sdk.transforms DoFn$ProcessContext)
-   (org.apache.beam.sdk.values PCollection PBegin PDone)
+   (org.apache.beam.sdk.values PBegin KV)
    (org.joda.time Instant)))
 
 ;; Kafka IO
 
 (defn read-bytes
-  "PTransform that read/write data from Kafka topics.
+  "PTransform that read data from Kafka topics.
 
   - with-bootstrap-servers: Sets the bootstrap servers for the Kafka consumer.
   - with-consumer-config-updates: Update consumer configuration with new properties.
@@ -52,6 +53,36 @@
     (-> p
         (cond-> (instance? Pipeline p) (PBegin/in))
         (.apply (beam/make-step-name step-name #'read-bytes) kafka-transform))))
+
+(defn- to-key-value
+  [{:keys [^DoFn$ProcessContext process-context runtime-parameters]}]
+  (let [element        (.element process-context)
+        kafka-key      ((:find-key-fn runtime-parameters) element)]
+    (-> process-context
+        (.output (KV/of kafka-key element)))))
+
+(defn write
+  "PTransform that write data from Kafka topics.
+
+  - with-bootstrap-servers: Sets the bootstrap servers for the Kafka consumer.
+  - with-producer-config-updates: Update producer configuration with new properties.
+  - with-topic: Sets the topic to write to.
+  - to-key-value-fn: Provide a function that finds the Kafka key in the record
+
+  See https://beam.apache.org/releases/javadoc/2.9.0/org/apache/beam/sdk/io/kafka/KafkaIO.html"
+  [pipeline {:keys [with-bootstrap-servers with-producer-config-updates find-key-fn
+                    with-key-serializer with-value-serializer with-topic step-name]}]
+  (let [kafka-transform (cond-> (KafkaIO/write)
+                          with-bootstrap-servers (.withBootstrapServers with-bootstrap-servers)
+                          with-producer-config-updates (.withProducerConfigUpdates with-producer-config-updates)
+                          with-key-serializer (.withKeySerializer with-key-serializer)
+                          with-value-serializer (.withValueSerializer with-value-serializer)
+                          with-topic (.withTopic with-topic))]
+    (-> pipeline
+        (beam/pardo #'to-key-value {:step-name          (format "%s:to-key-value" step-name)
+                                    :runtime-parameters {:find-key-fn find-key-fn}
+                                    :coder              (nippy-coder/make-kv-coder)})
+        (.apply (beam/make-step-name step-name #'write) kafka-transform))))
 
 (def ^:private schema-registry-client (atom nil))
 

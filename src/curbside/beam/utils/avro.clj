@@ -8,10 +8,11 @@
    [curbside.ad.avro-schemas.ad-dests-stop :as ad-dests-stop]
    [curbside.ad.avro-schemas.ad-notify-estimate :as ad-notify-estimate]
    [curbside.ad.avro-schemas.ad-stories :as ad-stories]
-   [curbside.ad.avro.decode :refer [decode*]])
+   [curbside.ad.avro.decode :refer [decode*]]
+   [curbside.beam.schema-registry.api :as schema-registry-api])
   (:import
    (io.confluent.kafka.schemaregistry.client SchemaRegistryClient)
-   (java.io ByteArrayOutputStream)
+   (java.io ByteArrayOutputStream DataOutputStream)
    (java.nio ByteBuffer)
    (org.apache.avro Schema)))
 
@@ -64,3 +65,44 @@
            subject->reader-schema (or subject->reader-schema default-subject->reader-schema)
            reader-schema (subject->reader-schema subject-name)]
        (decode* writer-schema (or reader-schema writer-schema) avro-raw-data)))))
+
+(def ^:const ^:private magic-byte 0)
+
+(defn- encode*
+  "Encode is going to create the header of kafka message, put the schema id inside the header and encode the data.
+  Byte 0 -> a magic number
+  Byte 1-4 -> schema id
+  Byte 5-n -> avro object
+  https://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html#wire-format"
+  [schema-registry-id schema record]
+  {:pre [schema]}
+  (with-open [byte-array-output-stream (ByteArrayOutputStream.)
+              out (DataOutputStream. byte-array-output-stream)]
+    (doto out
+      (.writeByte magic-byte)
+      (.writeInt schema-registry-id))
+    (avro/encode schema out record)
+    (.toByteArray byte-array-output-stream)))
+
+(defn get-schema-id
+  [schema-registry schema]
+  (.getId schema-registry (.getFullName schema) schema))
+
+(defn encode [registry schema record]
+  ;; null in Kafka has a special meaning for deletion in a topic with the compact retention policy.
+  ;; https://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html#wire-format
+  (when record
+    (when-let [schema-registry-id (get-schema-id registry schema)]
+      (encode* schema-registry-id schema record))))
+
+(defn serialize-record
+  "This is an example for a serialize function.
+    - topic: Topic name where the bytes will be written
+    - record: Data to serialize
+    - runtime-config: Config in the producter-config-updates as 'clojure.kafka-serializer.config'
+    - schema: Single schema to serialize"
+  [schema]
+  (fn [_ record {:keys [runtime-config]}]
+    (let [schema-registry (schema-registry-api/make-client (:schema-registry-cfg runtime-config))]
+      (encode schema-registry schema record))))
+
