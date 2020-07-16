@@ -4,8 +4,8 @@
    [abracad.helpers.schema :as schema]
    [curbside.beam.test-env :as env]
    [curbside.beam.utils.avro :as avro-utils]
-   [curbside.common.avro-schemas.core :as core]
-   [curbside.beam.utils.kafka-test :as kafka]))
+   [curbside.beam.utils.kafka-test :as kafka]
+   [curbside.common.avro-schemas.core :as core]))
 
 (def ^:private identity-map-capacity 1000)
 

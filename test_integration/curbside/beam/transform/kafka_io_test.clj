@@ -3,6 +3,7 @@
    [abracad.avro :as avro]
    [abracad.helpers.schema :as schema]
    [clojure.test :refer [deftest is testing]]
+   [curbside.ad.avro-schemas.ad-notify-estimate :as ad-notify-estimate]
    [curbside.beam.api :as beam]
    [curbside.beam.kafka :as kafka]
    [curbside.beam.schema-registry-util :as schema-registry-util]
@@ -11,7 +12,6 @@
    [curbside.beam.transform.kafka-io :as kafka-io]
    [curbside.beam.utils.avro :as avro-utils]
    [curbside.beam.utils.kafka-test :as kafka-test]
-   [curbside.ad.avro-schemas.ad-notify-estimate :as ad-notify-estimate]
    [curbside.common.avro-schemas.core :as core])
   (:import
    (curbside.beam.java ClojureKafkaSupport$KafkaValueSerializer ClojureKafkaSupport$KafkaKeySerializer)
