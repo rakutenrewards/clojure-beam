@@ -5,7 +5,8 @@
    [clojure.string :as str]
    [clojure.tools.logging :as log])
   (:import
-   (com.timgroup.statsd NonBlockingStatsDClient Event Event$AlertType)))
+   (com.timgroup.statsd NonBlockingStatsDClient Event Event$AlertType)
+   (org.apache.beam.sdk.transforms DoFn$ProcessContext)))
 
 (def ^:private string-array-class
   "Reference to Java's `String[]` type. Used for type annotations."
@@ -49,6 +50,11 @@
 (def start-client
   (memoize start-client*))
 
+(def log-datadog-disabled
+  "We memoize because the setup function is called multiple times in beam
+  and we don't want to log the same line multiple times for nothing."
+  (memoize #(log/warn "Datadog is disabled")))
+
 (defn stop-client [^NonBlockingStatsDClient client]
   (try
     (log/info "Stopping StatsD client...")
@@ -61,8 +67,9 @@
   [{:keys [runtime-parameters]}]
   (let [{:keys [datadog-config]} runtime-parameters
         {:keys [enabled]} datadog-config]
-    (when (boolean enabled)
-      {:datadog-client (start-client datadog-config)})))
+    (if (boolean enabled)
+      {:datadog-client (start-client datadog-config)}
+      (log-datadog-disabled))))
 
 (defn- ^String dash->underscore
   "Converts `-` to `_` in `x`"
@@ -70,9 +77,8 @@
   (str/replace (name x) \- \_))
 
 (defn gauge-java [datadog metric ^double value tags]
-  (if datadog
-    (.gauge datadog metric value tags)
-    (log/warn "No datadog client provided for gauge: " metric)))
+  (when datadog
+    (.gauge datadog metric value tags)))
 
 (defn gauge
   ([datadog metric value]
@@ -84,57 +90,58 @@
   ([datadog metric]
    (inc datadog metric empty-tags))
   ([datadog metric tags]
-   (if datadog
-     (.increment datadog (dash->underscore metric) (coerce-array tags))
-     (log/warn "No datadog client provided for inc: " metric))))
+   (when datadog
+     (.increment datadog (dash->underscore metric) (coerce-array tags)))))
+
+(defn inc-pardo
+  "Use this as a pardo function to count the number of elements processed"
+  [{:keys [^DoFn$ProcessContext process-context runtime-parameters custom-context]}]
+  (let [{:keys [metric tags]} runtime-parameters
+        {:keys [datadog-client]} custom-context]
+    (inc datadog-client metric tags)
+    (.output process-context (.element process-context))))
 
 (defn dec
   ([datadog metric]
    (dec datadog metric empty-tags))
   ([datadog metric tags]
-   (if datadog
-     (.decrement datadog (dash->underscore metric) (coerce-array tags))
-     (log/warn "No datadog client provided for dec: " metric))))
+   (when datadog
+     (.decrement datadog (dash->underscore metric) (coerce-array tags)))))
 
 (defn count
   ([datadog metric delta]
    (count datadog metric delta empty-tags))
   ([datadog metric ^long delta tags]
-   (if datadog
-     (.count datadog (dash->underscore metric) delta (coerce-array tags))
-     (log/warn "No datadog client provided for count: " metric))))
+   (when datadog
+     (.count datadog (dash->underscore metric) delta (coerce-array tags)))))
 
 (defn set
   ([datadog metric value]
    (set datadog metric value empty-tags))
   ([datadog metric value tags]
-   (if datadog
-     (.recordSetValue datadog (dash->underscore metric) value (coerce-array tags))
-     (log/warn "No datadog client provided for set: " metric))))
+   (when datadog
+     (.recordSetValue datadog (dash->underscore metric) value (coerce-array tags)))))
 
 (defn histogram
   ([datadog metric value]
    (histogram datadog metric value empty-tags))
   ([datadog metric value tags]
-   (if datadog
-     (.histogram datadog (dash->underscore metric) (double value) (coerce-array tags))
-     (log/warn "No datadog client provided for histogram: " metric))))
+   (when datadog
+     (.histogram datadog (dash->underscore metric) (double value) (coerce-array tags)))))
 
 (defn distribution
   ([datadog metric value]
    (distribution datadog metric value empty-tags))
   ([datadog metric value tags]
-   (if datadog
-     (.recordDistributionValue datadog (dash->underscore metric) (double value) (coerce-array tags))
-     (log/warn "No datadog client provided for distribution: " metric))))
+   (when datadog
+     (.recordDistributionValue datadog (dash->underscore metric) (double value) (coerce-array tags)))))
 
 (defn timing
   ([datadog metric ms-timestamp]
    (timing datadog metric ms-timestamp empty-tags))
   ([datadog metric ^long ms-timestamp tags]
-   (if datadog
-     (.recordExecutionTime datadog (dash->underscore metric) ms-timestamp (coerce-array tags))
-     (log/warn "No datadog client provided for timing: " metric))))
+   (when datadog
+     (.recordExecutionTime datadog (dash->underscore metric) ms-timestamp (coerce-array tags)))))
 
 (defmacro timed
   "Times the execution of `body` and report it to `timing`."
