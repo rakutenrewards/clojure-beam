@@ -25,6 +25,10 @@
      :username :env/artifactory_user
      :password :env/artifactory_pass}]]
 
+  ;; Safety: you *must* use a dedicated release profile in order to perform
+  ;; releases.
+  :release-tasks []
+
   :exclusions [org.slf4j/slf4j-log4j12 log4j]
 
   :dependencies
@@ -112,4 +116,15 @@
                          [org.hamcrest/hamcrest-core "2.2"]
                          [org.hamcrest/hamcrest-library "2.2"]]}
    :ci-medium {:plugins [[test2junit "1.3.3"]]
-               :jvm-opts ["-Xms3G" "-Xmx3G"]}})
+               :jvm-opts ["-Xms3G" "-Xmx3G"]}
+
+   :release {;; Re-enable release tasks for this profile only!
+             :release-tasks [["vcs" "assert-committed"]
+                             ["change" "version" "leiningen.release/bump-version" "release"]
+                             ["vcs" "commit"]
+                             ;; we diverge from standard release tasks by using --no-sign here
+                             ["vcs" "tag" "--no-sign"]
+                             ["deploy"]
+                             ["change" "version" "leiningen.release/bump-version"]
+                             ["vcs" "commit"]
+                             ["vcs" "push"]]}})
