@@ -23,7 +23,9 @@
   [["releases"
     {:url "https://curbside.jfrog.io/curbside/libs-release-local/"
      :username "curbside-api-build"
-     :password :env/jfrog_password}]]
+     :password :env/jfrog_password
+     ;; note: disabling release signing
+     :sign-releases false}]]
 
   ;; Safety: you *must* use a dedicated release profile in order to perform
   ;; releases.
