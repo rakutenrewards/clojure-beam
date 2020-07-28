@@ -20,12 +20,10 @@
      :password :env/jfrog_password}]]
 
   :deploy-repositories
-  [["releases"
-    {:url "https://curbside.jfrog.io/curbside/libs-release-local/"
-     :username "curbside-avro-schemas-build"
-     :password :env/jfrog_password
-     ;; note: disabling release signing
-     :sign-releases false}]]
+  [["releases" {:url "https://maven.pkg.github.com/RakutenReady/curbside-clojure-beam"
+                :username :env/github_actor
+                :password :env/github_token
+                :sign-releases false}]]
 
   ;; Safety: you *must* use a dedicated release profile in order to perform
   ;; releases.
