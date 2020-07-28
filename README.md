@@ -17,7 +17,7 @@ Run `lein fix` to format Clojure code.
 
 Releases are performed by CI/Jenkins (not from local developer machines):
 
-https://jk.curbside.com/job/Jobs/job/curbside-clojure-beam/job/release-patch/
+https://jk.curbside.com/job/Jobs/job/Flow/job/Release%20curbside-clojure-beam%20patch/
 
 Replace `release-patch` with `release-minor` or `release-major` as needed. 
 This determines which of the version numbers will be changed in `project.clj` (the version number format is MAJOR.MINOR.PATCH).
