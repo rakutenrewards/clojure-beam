@@ -22,7 +22,7 @@
   :deploy-repositories
   [["releases"
     {:url "https://curbside.jfrog.io/curbside/libs-release-local/"
-     :username "curbside-api-build"
+     :username "curbside-avro-schemas-build"
      :password :env/jfrog_password
      ;; note: disabling release signing
      :sign-releases false}]]
