@@ -22,8 +22,8 @@
   :deploy-repositories
   [["releases"
     {:url "https://curbside.jfrog.io/curbside/libs-release-local/"
-     :username :env/artifactory_user
-     :password :env/artifactory_pass}]]
+     :username "curbside-api-build"
+     :password :env/jfrog_password}]]
 
   ;; Safety: you *must* use a dedicated release profile in order to perform
   ;; releases.
