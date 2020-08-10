@@ -152,5 +152,6 @@
            :with-start-read-time (some-> start-read-time time-format/parse (.toInstant))
            ;; this is useful for direct/local testing:
            ;; :with-max-num-records 175
+           :with-commit-offsets-in-finalize true
            :without-metadata true})
          (beam/pardo #'filter-ignored*)))))
