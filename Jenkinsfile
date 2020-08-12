@@ -12,7 +12,8 @@ pipeline.configuration {
     shell 'auto-format-code', {
       node               'staging_generic_t3_small'
       command_line       './scripts/ci/auto-format-code'
-      encrypted_env_vars 'GITHUB_TOKEN=curbsidebot-access-token', 'JFROG_PASSWORD=artifactory_curbside_api_build_password'
+      env_vars           'GITHUB_ACTOR=curbsidebot'
+      encrypted_env_vars 'GITHUB_TOKEN=curbsidebot_github_token'
       timeout 20
     }
 
@@ -24,22 +25,24 @@ pipeline.configuration {
     shell 'git-merge-commits', {
       node               'staging_generic_t3_nano'
       command_line       './scripts/ci/check-merges'
-      encrypted_env_vars 'GITHUB_TOKEN=curbsidebot-access-token'
+      encrypted_env_vars 'GITHUB_TOKEN=curbsidebot_github_token'
     }
 
     shell 'code-quality-check', {
-      node         'staging_generic_t3_medium'
-      command_line 'lein eastwood'
-      encrypted_env_vars 'JFROG_PASSWORD=artifactory_curbside_api_build_password'
-      timeout 20
+      node               'staging_generic_t3_medium'
+      command_line       'lein eastwood'
+      env_vars           'GITHUB_ACTOR=curbsidebot'
+      encrypted_env_vars 'GITHUB_TOKEN=curbsidebot_github_token'
+      timeout            20
     }
 
     test 'lein-test-junit', {
-      node         'staging_generic_t3_large'
-      command_line './scripts/ci/lein-test-runner'
-      retries 2
-      encrypted_env_vars 'JFROG_PASSWORD=artifactory_curbside_api_build_password'
-      result_file  'test-reports/xml/*.xml'
+      node               'staging_generic_t3_large'
+      command_line       './scripts/ci/lein-test-runner'
+      env_vars           'GITHUB_ACTOR=curbsidebot'
+      encrypted_env_vars 'GITHUB_TOKEN=curbsidebot_github_token'
+      result_file        'test-reports/xml/*.xml'
+      retries            2
     }
   }
 }
