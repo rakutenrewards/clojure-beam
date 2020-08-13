@@ -10,14 +10,14 @@
     {:url "https://s3.amazonaws.com/redshift-maven-repository/release"}]
    ["confluent"
     {:url "https://packages.confluent.io/maven/"}]
-   ["curbside-snapshot-repo"
-    {:url "https://curbside.jfrog.io/curbside/libs-snapshot-local/"
-     :username "curbside-api-build"
-     :password :env/jfrog_password}]
-   ["curbside-release-repo"
-    {:url "https://curbside.jfrog.io/curbside/libs-release-local/"
-     :username "curbside-api-build"
-     :password :env/jfrog_password}]]
+   ["abracad"
+    {:url "https://maven.pkg.github.com/RakutenReady/abracad"
+     :username :env/github_actor
+     :password :env/github_token}]
+   ["curbside-avro-schemas"
+    {:url "https://maven.pkg.github.com/RakutenReady/curbside-avro-schemas"
+     :username :env/github_actor
+     :password :env/github_token}]]
 
   :deploy-repositories
   [["releases" {:url "https://maven.pkg.github.com/RakutenReady/curbside-clojure-beam"
@@ -59,9 +59,9 @@
    [org.apache.kafka/kafka-clients "2.0.0"]
    [io.confluent/kafka-avro-serializer "5.0.0"
     :exclusions [org.apache.kafka/kafka-clients]]
-   [curbside/abracad "0.4.21"] ; AVRO for Clojure
+   [curbside/abracad "0.4.23"] ; AVRO for Clojure
    [org.apache.avro/avro "1.9.1"]
-   [curbside-avro-schemas "0.0.45"]
+   [curbside-avro-schemas "0.0.47"]
 
    ;; redis
    [com.taoensso/carmine "2.19.1"]

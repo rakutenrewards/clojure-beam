@@ -25,5 +25,5 @@ This determines which of the version numbers will be changed in `project.clj` (t
 This release job will:
     1. Update the project version, 
     2. Create a git release tag
-    3. Deploy a _released_ jar (i.e., with a _non-SNAPSHOT_ version) to our Artifactory/JFrog Maven repository.
+    3. Deploy a _released_ jar (i.e., with a _non-SNAPSHOT_ version) to `Github packages`.
 
