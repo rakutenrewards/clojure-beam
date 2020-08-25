@@ -80,30 +80,35 @@
                                 "basic.auth.user.info" (format "%s:%s" schema-registry-access-key schema-registry-secret-key)})
       base-config)))
 
+(defn- add-confluent-credentials
+  [base-config confluent-api-key confluent-api-secret]
+  (if (and (not (string/blank? confluent-api-key)) (not (string/blank? confluent-api-secret)))
+    (assoc base-config
+           CommonClientConfigs/SECURITY_PROTOCOL_CONFIG (.name SecurityProtocol/SASL_SSL)
+           SaslConfigs/SASL_MECHANISM "PLAIN"
+           SaslConfigs/SASL_JAAS_CONFIG (format "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"%s\" password=\"%s\";" confluent-api-key confluent-api-secret))
+    base-config))
+
 (defn- generate-kafka-consumer-config
   [job-name subject->reader-schema
    {:keys [kafka-offset-reset deploy-namespace confluent-api-key confluent-api-secret] :as options}]
-  (let [base-config {"auto.offset.reset" kafka-offset-reset
-                     "group.id" (format "%s/%s" deploy-namespace job-name)
-                     ;; We are going to use our own custom Kafka deserializer but KafkaIO won't
-                     ;;   let us instantiate directly. Instead we must use consumer config to
-                     ;;   "pass" it the Clojure deserializer function (and config):
-                     "clojure.kafka-deserializer.fn" #'deserialize-kafka-bytes
-                     "clojure.kafka-deserializer.require-vars" [subject->reader-schema]
-                     "clojure.kafka-deserializer.config" {:schema-registry-cfg (schema-registry-config options)
-                                                          :subject->reader-schema subject->reader-schema}}]
-    (if (and (not (string/blank? confluent-api-secret)) (not (string/blank? confluent-api-secret)))
-      (assoc base-config
-             CommonClientConfigs/SECURITY_PROTOCOL_CONFIG (.name SecurityProtocol/SASL_SSL)
-             SaslConfigs/SASL_MECHANISM "PLAIN"
-             SaslConfigs/SASL_JAAS_CONFIG (format "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"%s\" password=\"%s\";" confluent-api-key confluent-api-secret))
-      base-config)))
+  (-> {"auto.offset.reset" kafka-offset-reset
+       "group.id" (format "%s/%s" deploy-namespace job-name)
+       ;; We are going to use our own custom Kafka deserializer but KafkaIO won't
+       ;;   let us instantiate directly. Instead we must use consumer config to
+       ;;   "pass" it the Clojure deserializer function (and config):
+       "clojure.kafka-deserializer.fn" #'deserialize-kafka-bytes
+       "clojure.kafka-deserializer.require-vars" [subject->reader-schema]
+       "clojure.kafka-deserializer.config" {:schema-registry-cfg (schema-registry-config options)
+                                            :subject->reader-schema subject->reader-schema}}
+      (add-confluent-credentials confluent-api-key confluent-api-secret)))
 
 (defn generate-kafka-producer-config
-  [schema-registry-config-params serialize-kafka-key-var serialize-kafka-value-var]
-  {"clojure.kafka-serializer.config" {:schema-registry-cfg (schema-registry-config schema-registry-config-params)}
-   "clojure.kafka-key-serializer.fn" serialize-kafka-key-var
-   "clojure.kafka-value-serializer.fn" serialize-kafka-value-var})
+  [{:keys [confluent-api-key confluent-api-secret] :as config} serialize-kafka-key-var serialize-kafka-value-var]
+  (-> {"clojure.kafka-serializer.config" {:schema-registry-cfg (schema-registry-config config)}
+       "clojure.kafka-key-serializer.fn" serialize-kafka-key-var
+       "clojure.kafka-value-serializer.fn" serialize-kafka-value-var}
+      (add-confluent-credentials confluent-api-key confluent-api-secret)))
 
 (defn ^PTransform make-kafka-input-xf
   "Create a (composite) transform that reads from a Kafka topic and emits Avro-decoded
