@@ -10,7 +10,7 @@ pipeline.configuration {
   // Pull Requests -----------------------------------------------------------
   pr_checks {
     shell 'auto-format-code', {
-      node               'staging_generic_t3_small'
+      node               'generic-s1-standard-1'
       command_line       './scripts/ci/auto-format-code'
       env_vars           'GITHUB_ACTOR=curbsidebot'
       encrypted_env_vars 'GITHUB_TOKEN=curbsidebot_github_token'
@@ -18,18 +18,18 @@ pipeline.configuration {
     }
 
     shell 'git-commit-messages', {
-      node         'staging_generic_t3_small'
+      node         'generic-s1-standard-1'
       command_line './scripts/ci/check-commit-messages'
     }
 
     shell 'git-merge-commits', {
-      node               'staging_generic_t3_nano'
+      node               'generic-s1-standard-1'
       command_line       './scripts/ci/check-merges'
       encrypted_env_vars 'GITHUB_TOKEN=curbsidebot_github_token'
     }
 
     shell 'code-quality-check', {
-      node               'staging_generic_t3_medium'
+      node               'generic-s1-standard-1'
       command_line       'lein eastwood'
       env_vars           'GITHUB_ACTOR=curbsidebot'
       encrypted_env_vars 'GITHUB_TOKEN=curbsidebot_github_token'
@@ -37,7 +37,7 @@ pipeline.configuration {
     }
 
     test 'lein-test-junit', {
-      node               'staging_generic_t3_large'
+      node               'generic-s1-standard-1'
       command_line       './scripts/ci/lein-test-runner'
       env_vars           'GITHUB_ACTOR=curbsidebot'
       encrypted_env_vars 'GITHUB_TOKEN=curbsidebot_github_token'
