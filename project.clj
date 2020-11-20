@@ -1,4 +1,4 @@
-(def ^:private apache-beam-version "2.23.0")
+(def ^:private apache-beam-version "2.25.0")
 (def ^:private slfj4-version "1.7.30")
 
 (defproject com.curbside/curbside-clojure-beam "0.2.15-SNAPSHOT"
@@ -52,8 +52,10 @@
    [org.apache.beam/beam-sdks-java-io-jdbc ~apache-beam-version]
    [org.apache.beam/beam-sdks-java-core ~apache-beam-version]
    [org.apache.beam/beam-runners-direct-java ~apache-beam-version]
+   [org.apache.beam/beam-sdks-java-io-snowflake ~apache-beam-version
+    :exclusions [io.grpc/grpc-netty-shaded io.grpc/grpc-core io.grpc/grpc-api log4j org.slf4j/slf4j-log4j12]]
    [org.apache.beam/beam-runners-google-cloud-dataflow-java ~apache-beam-version
-    :exclusions [io.netty/netty-codec-http2 io.grpc/grpc-netty-shaded io.grpc/grpc-core]]
+    :exclusions [io.netty/netty-codec-http2 io.grpc/grpc-netty-shaded io.grpc/grpc-core io.grpc/grpc-api log4j org.slf4j/slf4j-log4j12]]
 
    ;; kafka
    [org.apache.kafka/kafka-clients "2.0.0"]
