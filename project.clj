@@ -1,4 +1,4 @@
-(def ^:private apache-beam-version "2.25.0")
+(def ^:private apache-beam-version "2.26.0")
 (def ^:private slfj4-version "1.7.30")
 
 (defproject com.curbside/curbside-clojure-beam "0.3.0-SNAPSHOT"
@@ -58,7 +58,7 @@
     :exclusions [io.netty/netty-codec-http2 io.grpc/grpc-netty-shaded io.grpc/grpc-core io.grpc/grpc-api log4j org.slf4j/slf4j-log4j12]]
 
    ;; kafka
-   [org.apache.kafka/kafka-clients "2.0.0"]
+   [org.apache.kafka/kafka-clients "2.7.0"]
    [io.confluent/kafka-avro-serializer "5.0.0"
     :exclusions [org.apache.kafka/kafka-clients]]
    [curbside/abracad "0.4.23"] ; AVRO for Clojure
