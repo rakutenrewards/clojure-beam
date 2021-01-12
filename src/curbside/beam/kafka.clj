@@ -158,5 +158,6 @@
            ;; this is useful for direct/local testing:
            ;; :with-max-num-records 175
            :with-commit-offsets-in-finalize true
+           :with-read-commited true
            :without-metadata true})
          (beam/pardo #'filter-ignored*)))))
