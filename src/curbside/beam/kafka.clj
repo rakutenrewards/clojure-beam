@@ -29,24 +29,26 @@
    (We do this manually here so we can optimize which messages we parse, but this
     can/should be generalized.)"
   [_kafka-topic ^"[B" record-bytes {:keys [runtime-config]}]
-  (let [schema-registry (schema-registry/make-client (:schema-registry-cfg runtime-config))
-        schema-id (.getInt (ByteBuffer/wrap record-bytes 1 4))
-        writer-schema (.getById ^CachedSchemaRegistryClient schema-registry schema-id)
-        subject-name (.getFullName writer-schema)]
-    (if-let [reader-schema ((:subject->reader-schema runtime-config) subject-name)]
-      (let [number-of-bytes-header 5
-            payload-length (- (alength record-bytes) number-of-bytes-header)
-            avro-raw-data (with-open [out (ByteArrayOutputStream.)]
-                            (.write out record-bytes number-of-bytes-header payload-length)
-                            (.toByteArray out))]
-        (let [decoded (decode* writer-schema reader-schema avro-raw-data)
-              event-ts-ms (.getMillis (time-utils/parse (:event-ts decoded)))
-              enter-ts-ms (System/currentTimeMillis)]
-          ;; parse event ts once and make it avail for downstream use.
-          (assoc decoded
-                 ::event-ts-ms event-ts-ms
-                 ::enter-ts-ms enter-ts-ms)))
-      ::ignored-kakfa-message)))
+  (if record-bytes
+    (let [schema-registry (schema-registry/make-client (:schema-registry-cfg runtime-config))
+          schema-id (.getInt (ByteBuffer/wrap record-bytes 1 4))
+          writer-schema (.getById ^CachedSchemaRegistryClient schema-registry schema-id)
+          subject-name (.getFullName writer-schema)]
+      (if-let [reader-schema ((:subject->reader-schema runtime-config) subject-name)]
+        (let [number-of-bytes-header 5
+              payload-length (- (alength record-bytes) number-of-bytes-header)
+              avro-raw-data (with-open [out (ByteArrayOutputStream.)]
+                              (.write out record-bytes number-of-bytes-header payload-length)
+                              (.toByteArray out))]
+          (let [decoded (decode* writer-schema reader-schema avro-raw-data)
+                event-ts-ms (.getMillis (time-utils/parse (:event-ts decoded)))
+                enter-ts-ms (System/currentTimeMillis)]
+            ;; parse event ts once and make it avail for downstream use.
+            (assoc decoded
+                   ::event-ts-ms event-ts-ms
+                   ::enter-ts-ms enter-ts-ms)))
+        ::ignored-kakfa-message))
+    (log/error "Tried to deserialize a nil record")))
 
 (defn- ^Instant get-timestamp*
   "Our custom event timestamp provider for Kafka. We want to use the actual event
