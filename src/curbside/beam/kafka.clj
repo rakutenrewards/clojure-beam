@@ -48,7 +48,8 @@
                    ::event-ts-ms event-ts-ms
                    ::enter-ts-ms enter-ts-ms)))
         ::ignored-kakfa-message))
-    (log/error "Tried to deserialize a nil record")))
+    (do (log/error "Tried to deserialize a nil record")
+        ::ignored-kakfa-message)))
 
 (defn- ^Instant get-timestamp*
   "Our custom event timestamp provider for Kafka. We want to use the actual event
